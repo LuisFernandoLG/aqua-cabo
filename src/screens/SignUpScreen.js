@@ -12,7 +12,7 @@ export const SignUpScreen = () => {
   const navigation = useNavigation();
 
   const goToLoginScreen = () => {
-    navigation.navigate("Login");
+    navigation.navigate("login");
   };
 
   return (

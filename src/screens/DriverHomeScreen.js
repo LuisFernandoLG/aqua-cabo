@@ -2,17 +2,21 @@ import { StyleSheet, View } from "react-native";
 import BottomSheet from "react-native-simple-bottom-sheet";
 
 import MapView, { Marker } from "react-native-maps";
-import { FlexContainer } from "../components/FlexContainer";
 import { useEffect, useRef, useState } from "react";
 import { RequestSheetContent } from "../components/userBottomSheetsClient/RequestSheetContent";
 import { WaitingSheetContent } from "../components/userBottomSheetsClient/WatingSheetContent";
 import { WelcomeSheetContent } from "../components/userBottomSheetsClient/WelcomeSheetContent";
 import { FloatContainer } from "../components/FloatContainer";
 import { Button, Text } from "@rneui/themed";
-import { useUserLocation } from "../hooks/useUserLocation";
 import firebase from "../../database/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { useIsFocused } from "@react-navigation/native";
+import { useMapModal } from "../hooks/useMapModal";
+import { ModalX } from "../components/Modal";
+import { api } from "../services/api";
+import { GOOGLE_MAPS_APIKEY } from "@env";
+import MapViewDirections from "react-native-maps-directions";
+import { getRegionForCoordinates } from "../helpers/getRegionForCoordinates";
 
 const initialRegion = {
   latitude: 22.945646,
@@ -39,62 +43,102 @@ const clientRequests = {
 
 export const DriverHomeScreen = ({ navigation }) => {
   const [marker, setMarker] = useState(initialMarker);
-  const { myLocation, suscribeOnSharingLocation, unsuscribeOnSharingLocation } =
-    useUserLocation();
   const { user, isLogged } = useAuth();
   const isFocused = useIsFocused();
+  const [userLocation, setUserLocation] = useState(null);
+  const [requestsByClients, setRequestsByClients] = useState([]);
+  const [requestsAccepted, setRequestsAccepted] = useState([]);
+  const { openModal, closeModal, isOpen } = useMapModal();
+  const [currentClientDestination, setCurrentClientDestination] =
+    useState(null);
+  const [currentRegion, setCurrentRegion] = useState(initialRegion);
+
+  useEffect(() => {
+    console.log("asignando");
+    if (requestsAccepted.length > 0 && userLocation) {
+      console.log({ mostrando: requestsAccepted[0] });
+      setCurrentClientDestination(requestsAccepted[0]);
+      const r = formatCurretRegion(requestsAccepted[0]);
+      setCurrentRegion(r);
+    }
+  }, [requestsAccepted]);
+
+  const formatCurretRegion = (dest) => {
+    const points = [
+      {
+        longitude: dest.clientCoords.longitude,
+        latitude: dest.clientCoords.latitude,
+      },
+
+      {
+        longitude: userLocation.longitude,
+        latitude: userLocation.latitude,
+      },
+    ];
+
+    return getRegionForCoordinates(points);
+  };
 
   // Un screen no llama a su clenup después de que se cambia de pantalla, por lo que el ciclo de vida normal de un componente en react native cambia un poco con esta clase de componentes
   // A su vez, la documentación recomienda usar el hooj useIsFocussed para sabre si está siendo mostrada la patanlla o no
-  useEffect(() => {
-    if (isFocused) suscribeOnSharingLocation();
-    else unsuscribeOnSharingLocation();
-  }, [isFocused]);
-
-  useEffect(() => {
-    console.log({ user, isLogged });
-  }, [user, isLogged]);
+  // useEffect(() => {
+  //   if (isFocused) suscribeOnSharingLocation();
+  //   else unsuscribeOnSharingLocation();
+  // }, [isFocused]);
 
   const panelRef = useRef(null);
   const [clientRequestSectionNum, setClientRequestSectionNum] = useState(
     clientRequests.HIDE
   );
 
-  const sendCoords = async () => {
-    // const truck = {
-    //   driverId: user.id,
-    //   longitude: myLocation.longitude,
-    //   latitude: myLocation.latitude,
-    // };
-    // const truckRef = firebase.db.collection("truckLocations").doc();
-    // await truckRef.set(truck);
-  };
-
-  useEffect(() => {
-    // if (myLocation) sendCoords();
-  }, [myLocation]);
-
-  const testing = async () => {
+  const sendCurrentLocationToDb = async () => {
     if (!user) return false;
-    const truck = {
+    await api().sendDriverCoordsToDb({
       driverId: user.id,
-      longitude: myLocation.coords.longitude,
-      latitude: myLocation.coords.latitude,
-    };
-    try {
-      console.log({ truck });
-      const truckRef = await firebase.db
-        .collection("truckLocations")
-        .doc(truck.driverId)
-        .set(truck);
-    } catch (error) {
-      console.log({ errorRR: error });
-    }
+      newCoords: userLocation,
+    });
+  };
+
+  const onDisconnect = async () => {
+    // const ref = await firebase.firebase.database().ref(`truckLocations/${user.id}`)
+    // const ref = await firebase.firebase.database().ref(`.info/connected`)
+    // console.log({res: res[0].f})
   };
 
   useEffect(() => {
-    testing();
-  }, [myLocation]);
+    if (userLocation) {
+      sendCurrentLocationToDb();
+    }
+  }, [userLocation]);
+
+  useEffect(() => {
+    console.log({ user });
+
+    api().suscribeToClienRequests({ driverId: user.id }, () => {
+      console.log("suscriber!!!");
+    });
+
+    api().suscribeToWatchClientRequests(
+      { driverId: user.id },
+      ({ requests }) => {
+        setRequestsByClients(requests);
+        console.log({ requests });
+      }
+    );
+
+    api().suscribeToWatchRequestsTakenDriverVersion(
+      { driverId: user.id },
+      ({ takenRequests }) => {
+        setRequestsAccepted(takenRequests);
+      }
+    );
+  }, []);
+
+  const updateUserLocation = (event) => {
+    if (!event?.nativeEvent?.coordinate) return false;
+    const location = event.nativeEvent.coordinate;
+    if (isFocused) setUserLocation(location);
+  };
 
   const setSheetSectionToRequesting = () => {
     addBusToFireStore();
@@ -113,53 +157,80 @@ export const DriverHomeScreen = ({ navigation }) => {
       setClientRequestSectionNum(clientRequests.HIDE);
   };
 
-  useState(() => {
-    console.log({ LUIS: myLocation });
-  }, [myLocation]);
-
   useEffect(() => {
-    console.log({ clientRequestSectionNum });
+    // console.log({ clientRequestSectionNum });
   }, [clientRequestSectionNum]);
+
+  const setRequesToTaken = async (requestId) => {
+    api().setRequestToTaken({ requestId });
+  };
 
   return (
     <View>
-      <FloatContainer top={0} right={0}>
-        <Button
-          title="Holis"
-          containerStyle={{
-            width: 60,
-          }}
+      {/* { requestsByClients.length > 0 && } */}
+      {userLocation && requestsByClients.length > 0 && (
+        <ModalX
+          driverCoords={userLocation}
+          clientCoords={requestsByClients[0].clientCoords}
+          request={requestsByClients[0]}
+          isOpen={isOpen}
+          closeModal={closeModal}
+          setRequesToTaken={setRequesToTaken}
         />
-      </FloatContainer>
-      <MapView style={styles.map} initialRegion={initialRegion}>
-        <Marker
-          coordinate={marker.coordinate}
-          title={marker.title}
-          description={marker.description}
-          image={require("../../assets/bus.png")}
-        />
-        {myLocation && (
-          <Marker
-            title={"Yo"}
-            coordinate={{
-              longitude: myLocation.coords.longitude,
-              latitude: myLocation.coords.latitude,
-            }}
-          />
+      )}
+
+      {/* Mapa principal -------------------------- */}
+      <MapView
+        style={styles.map}
+        initialRegion={initialRegion}
+        region={currentRegion}
+        showsUserLocation={true}
+        onUserLocationChange={updateUserLocation}
+        userLocationUpdateInterval={15000}
+      >
+        {userLocation && currentClientDestination && (
+          <>
+            <MapViewDirections
+              strokeWidth={3}
+              origin={{
+                latitude: userLocation.latitude,
+                longitude: userLocation.longitude,
+              }}
+              destination={{
+                latitude: currentClientDestination.clientCoords.latitude,
+                longitude: currentClientDestination.clientCoords.longitude,
+              }}
+              apikey={GOOGLE_MAPS_APIKEY}
+            />
+
+            <Marker
+              coordinate={{
+                latitude: currentClientDestination.clientCoords.latitude,
+                longitude: currentClientDestination.clientCoords.longitude,
+              }}
+              title={marker.title}
+              image={require("../../assets/bus.png")}
+            />
+          </>
         )}
       </MapView>
+
+      {/* Botoom sheet ------------------------------------------ */}
       <BottomSheet ref={(ref) => (panelRef.current = ref)}>
-        {myLocation && (
+        {userLocation && (
           <Text>
-            longitude: {myLocation.coords.longitude}, latitude:{" "}
-            {myLocation.coords.latitude},
+            {/* longitude: {userLocation.longitude}, latitude:{" "} */}
+            {userLocation.latitude},
           </Text>
         )}
-        <Text>Holi</Text>
-        <Text>Holi</Text>
-        <Text>Holi</Text>
-        <Text>Holi</Text>
-        <Text>Holi</Text>
+
+        {requestsByClients.map(({ quantity, id, status }) => {
+          return (
+            <Text key={id}>
+              {quantity} {status}
+            </Text>
+          );
+        })}
       </BottomSheet>
     </View>
   );

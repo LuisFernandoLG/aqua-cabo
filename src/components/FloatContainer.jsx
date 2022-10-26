@@ -8,12 +8,21 @@ export const FloatContainer = ({
   left,
   children,
   width,
+  zIndex,
 }) => {
-  const floatStyles = styles({ position, top, right, bottom, left, width });
+  const floatStyles = styles({
+    position,
+    top,
+    right,
+    bottom,
+    left,
+    width,
+    zIndex,
+  });
   return <View style={floatStyles}>{children}</View>;
 };
 
-const styles = ({ position, top, right, bottom, left, width }) => ({
+const styles = ({ position, top, right, bottom, left, width, zIndex }) => ({
   position: position && "absolute",
 
   top: top ? top : "auto",
@@ -21,4 +30,6 @@ const styles = ({ position, top, right, bottom, left, width }) => ({
   bottom: bottom ? bottom : "auto",
   left: left ? left : "auto",
   width: width ? width : "auto",
+  zIndex: zIndex | 1,
+  background:"transparent"
 });

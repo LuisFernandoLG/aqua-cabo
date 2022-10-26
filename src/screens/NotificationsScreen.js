@@ -1,19 +1,24 @@
 import { Button } from "@rneui/base";
 import { Text } from "@rneui/themed";
 import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import MapView from "react-native-maps";
 import firebase from "../../database/firebase";
+import { ModalX } from "../components/Modal";
+import { useMapModal } from "../hooks/useMapModal";
 
 const initialId = "rCL5Wdu63511w7PuxivX";
 
 export const NotificationsScreen = ({ navigation }) => {
   const [text, setText] = useState("");
+  const { openModal, closeModal, isOpen } = useMapModal();
+  
 
   const loadData = async () => {
     const textRef = firebase.db.collection("texts").doc(initialId);
     const doc = await textRef.get();
     const textt = doc.data();
-    setText(textt); 
+    setText(textt);
   };
 
   const loadDataRT = async () => {
@@ -44,8 +49,15 @@ export const NotificationsScreen = ({ navigation }) => {
 
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-      <Button onPress={() => navigation.goBack()} title="Go back home" />
-      <Text>{text.content}</Text>
+      {/* <Mini clientPosition driverPosition handleAnswer isOpen>
+      </Mini> */}
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  mapContainer: {
+    width: "100%",
+    height: "100%",
+  },
+});

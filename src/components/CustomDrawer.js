@@ -8,11 +8,12 @@ import { useAuth } from "../hooks/useAuth";
 
 export const CustomDrawerContent = (props) => {
   const navigation = useNavigation();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   const goToSLoginScreen = () => {
     logout();
-    navigation.navigate("DriverLogin");
+    if (user.type === "DRIVER") navigation.navigate("DriverLogin");
+    else navigation.navigate("login");
   };
 
   return (

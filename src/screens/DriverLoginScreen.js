@@ -12,6 +12,7 @@ import {
 import { FlexContainer } from "../components/FlexContainer";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigation } from "@react-navigation/native";
+import { api } from "../services/api";
 
 export const DriverLoginScreen = () => {
   const [email, setEmail] = useState("luis@gmail.com");
@@ -27,27 +28,39 @@ export const DriverLoginScreen = () => {
   }, [isLogged]);
 
   const login = async () => {
+    let user = {};
+    setIsLoading(true);
     if (!email && !login) return false;
 
-    const querySnapshot = await firebase.db
-      .collection("users")
-      .where("email", "==", email)
-      .where("password", "==", password)
-      .get();
+    try {
+      const querySnapshot = await firebase.db
+        .collection("users")
+        .where("email", "==", email)
+        .where("password", "==", password)
+        .get();
 
-    let user = {};
-    querySnapshot.forEach((doc) => {
-      user = { ...doc.data(), id: doc.id };
-    });
+      querySnapshot.forEach((doc) => {
+        user = { ...doc.data(), id: doc.id };
+      });
 
-    if (!querySnapshot.empty) {
+      if (querySnapshot.empty)
+        throw new Error("El correo o contraseña son incorrectos");
+      if (user.type === "CLIENT")
+        throw new Error(
+          "Lo sentimos, pero no tu cuenta no pertenece a la de un conductor"
+        );
       loginOnDb({ user });
-      navigation.navigate("DriverHome");
-    } else {
-      setErrors("El correo o contraseña son incorrectos");
+    } catch (error) {
+      setErrors(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
   const goToSignUpScreen = () => {};
+  const goToClientLoginScreen = () => {
+    navigation.navigate("login");
+  };
+
 
   return (
     <KeyboardAvoidingView
@@ -63,10 +76,10 @@ export const DriverLoginScreen = () => {
                 source={require("../../assets/logo.png")}
               />
             </View>
-            <Text h3>Bievenido deveulta</Text>
-            <Text style={styles.subtitle}>
-              Ingresa con tu cuenta de conductor
-            </Text>
+            <FlexContainer mVertical={20} flex_jc_c flex_ai_c>
+              <Text h3>Bievenido</Text>
+              <Text>Ingresa con tu cuenta de conductor</Text>
+            </FlexContainer>
             <Input
               keyboardType="email-address"
               placeholder="Correo"
@@ -88,21 +101,27 @@ export const DriverLoginScreen = () => {
               <Text style={styles.errorMsg}>{errors || ""}</Text>
             </FlexContainer>
 
-            <Button
-              title="Iniciar sesión"
-              onPress={login}
-              loading={isLoading}
-              containerStyle={{
-                width: 200,
-                marginHorizontal: 50,
-                marginVertical: 10,
-              }}
-            />
-            <Button
-              title="Registrarse"
-              type="clear"
-              onPress={goToSignUpScreen}
-            />
+            <FlexContainer flex_jc_c>
+              <Button
+                title="Iniciar sesión"
+                onPress={login}
+                loading={isLoading}
+              />
+
+              <Button
+                title="Registrarse"
+                titleStyle={{ color: "black" }}
+                onPress={goToSignUpScreen}
+                buttonStyle={{ backgroundColor: "rgba(244, 244, 244, 1)" }}
+                containerStyle={styles.middleBtn}
+              />
+
+              <Button
+                title="Soy Cliente"
+                type="clear"
+                onPress={goToClientLoginScreen}
+              />
+            </FlexContainer>
           </FlexContainer>
         </View>
       </TouchableWithoutFeedback>
@@ -126,14 +145,11 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     marginBottom: 0,
-    // borderColor: "#000",
-    // borderWidth: 2,
-    paddingVertical: 40,
   },
   title: {},
 
   subtitle: {
-    marginBottom: 10,
+    // marginBottom: 10,
   },
   errorMsg: {
     color: "red",
@@ -141,9 +157,12 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: "#fff",
 
-    padding: 10,
+    // padding: 10,
   },
   inputContainer: {
     borderWidth: 0,
+  },
+  middleBtn: {
+    marginVertical: 10,
   },
 });

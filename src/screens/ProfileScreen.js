@@ -1,19 +1,23 @@
-import { Text } from "@rneui/base"
-import { View } from "react-native"
-import { FlexContainer } from "../components/FlexContainer"
+import { Text } from "@rneui/base";
+import { View } from "react-native";
+import { FlexContainer } from "../components/FlexContainer";
+import { useAuth } from "../hooks/useAuth";
 
-export const ProfileScreen = ()=>{
-  return <View>
-    <FlexContainer pdTop={20}>
-      <FlexContainer flex_ai_c>
-      <Text h4>Nombre</Text>
-      <Text>Kautzman Díaz Francisco Iram</Text>
-      </FlexContainer>
-      <FlexContainer flex_ai_c>
-      <Text h4>Teléfono</Text>
-      <Text>624 242 07 21</Text>
-      </FlexContainer>
+export const ProfileScreen = () => {
+  const { user } = useAuth();
 
-    </FlexContainer>
-  </View>
-}
+  return (
+    <View>
+      <FlexContainer pdTop={20}>
+        <FlexContainer flex_ai_c>
+          <Text h4>Nombre</Text>
+          <Text>{user.name}</Text>
+        </FlexContainer>
+        <FlexContainer flex_ai_c>
+          <Text h4>email</Text>
+          <Text>{user.email}</Text>
+        </FlexContainer>
+      </FlexContainer>
+    </View>
+  );
+};
