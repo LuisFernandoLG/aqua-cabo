@@ -1,13 +1,14 @@
 import { Divider } from "@rneui/base";
 import { Button, Input, Text } from "@rneui/themed";
-import { useRef, useState } from "react";
 import { View } from "react-native";
 import { FlexContainer } from "../FlexContainer";
 
-export const WaitingSheetContent = ({ cancellRequest }) => {
-  const [ltValue, setLtVale] = useState(0);
-  const inputRef = useRef(null);
-
+export const WaitingSheetContent = ({
+  cancellRequest,
+  currentRequest,
+  expectedTime,
+  expectedDistance,
+}) => {
   return (
     <View>
       <FlexContainer flex_direction_r flex_jc_sb>
@@ -18,13 +19,15 @@ export const WaitingSheetContent = ({ cancellRequest }) => {
           <Text>4:15</Text>
         </FlexContainer>
         <View>
-          <Text style={{ fontWeight: "800" }}>200L</Text>
+          <Text style={{ fontWeight: "800" }}>
+            {currentRequest.waterQuantity} L
+          </Text>
         </View>
       </FlexContainer>
       <Divider width={10} color="#fff" />
       <FlexContainer flex_direction_r>
-        <Text>6min - </Text>
-        <Text>300m</Text>
+        <Text>{(expectedTime).toString().substring(0,1) || 0}m - </Text>
+        <Text>{(expectedDistance).toString().substring(0,5) || 0} Km</Text>
       </FlexContainer>
       <Divider width={10} color="#fff" />
 

@@ -15,12 +15,12 @@ import { useNavigation } from "@react-navigation/native";
 import { api } from "../services/api";
 
 export const DriverLoginScreen = () => {
-  const [email, setEmail] = useState("luis@gmail.com");
-  const [password, setPassword] = useState("nomelase.com");
+  const [email, setEmail] = useState("iram@cabo.com");
+  const [password, setPassword] = useState("12345678");
   const [isLoading, setIsLoading] = useState(null);
   const [errors, setErrors] = useState(null);
 
-  const { isLogged, login: loginOnDb } = useAuth();
+  const { isLogged, login: loginLocally } = useAuth();
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -28,39 +28,27 @@ export const DriverLoginScreen = () => {
   }, [isLogged]);
 
   const login = async () => {
-    let user = {};
+    setErrors("")
     setIsLoading(true);
     if (!email && !login) return false;
 
-    try {
-      const querySnapshot = await firebase.db
-        .collection("users")
-        .where("email", "==", email)
-        .where("password", "==", password)
-        .get();
-
-      querySnapshot.forEach((doc) => {
-        user = { ...doc.data(), id: doc.id };
+    api()
+      .login({ email, password })
+      .then((authUser) => {
+        console.log({ authUser });
+        loginLocally({ user: authUser });
+      })
+      .catch(() => {
+        setErrors("Correo o contraseña incorrectos");
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
-
-      if (querySnapshot.empty)
-        throw new Error("El correo o contraseña son incorrectos");
-      if (user.type === "CLIENT")
-        throw new Error(
-          "Lo sentimos, pero no tu cuenta no pertenece a la de un conductor"
-        );
-      loginOnDb({ user });
-    } catch (error) {
-      setErrors(error.message);
-    } finally {
-      setIsLoading(false);
-    }
   };
   const goToSignUpScreen = () => {};
   const goToClientLoginScreen = () => {
     navigation.navigate("login");
   };
-
 
   return (
     <KeyboardAvoidingView

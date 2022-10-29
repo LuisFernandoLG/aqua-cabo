@@ -7,12 +7,12 @@ import { useEffect, useRef, useState } from "react";
 import { RequestSheetContent } from "../components/userBottomSheetsClient/RequestSheetContent";
 import { WaitingSheetContent } from "../components/userBottomSheetsClient/WatingSheetContent";
 import { WelcomeSheetContent } from "../components/userBottomSheetsClient/WelcomeSheetContent";
-import firebase from "../../database/firebase";
 import { useIsFocused } from "@react-navigation/native";
 import { GOOGLE_MAPS_APIKEY } from "@env";
 import MapViewDirections from "react-native-maps-directions";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { AvailableTruckGroup } from "../components/AvailableTruckGroup";
 
 const initialRegion = {
   latitude: 22.945646,
@@ -34,7 +34,8 @@ const initialMarker = {
 const clientRequests = {
   HIDE: 0,
   REQUESTING: 1,
-  WAITING: 2,
+  LOOKING: 2,
+  WAITING: 3,
 };
 
 export const HomeScreen = ({ navigation }) => {
@@ -47,6 +48,9 @@ export const HomeScreen = ({ navigation }) => {
   const { user } = useAuth();
   const [requestAccepted, setRequestAccepted] = useState(null);
   const [truckRequestAccepted, setTruckRequestAccepted] = useState(null);
+  const [currentRequest, setCurrentRequest] = useState(null);
+  const [expectedTime, setExpectedTime] = useState(0);
+  const [expectedDistance, setExpectedDistance] = useState(0);
 
   const panelRef = useRef(null);
   const [clientRequestSectionNum, setClientRequestSectionNum] = useState(
@@ -58,45 +62,28 @@ export const HomeScreen = ({ navigation }) => {
 
   // Un screen no llama a su clenup después de que se cambia de pantalla, por lo que el ciclo de vida normal de un componente en react native cambia un poco con esta clase de componentes
   // A su vez, la documentación recomienda usar el hooj useIsFocussed para sabre si está siendo mostrada la patanlla o no
-  useEffect(() => {
-    updateUserLocation(userLocation);
-  }, [userLocation]);
 
   useEffect(() => {
-    api().suscribeToWatchTruckLocations(({ trucksArray }) => {
-      // console.log({ trucksArray });
-      setTrucks(trucksArray);
+    if (currentRequest) {
+      console.log("viendo que estao tiene")
+      console.log({currentRequest})
+      if (currentRequest.status === "PENDING") setIsLoading(true);
+      if (currentRequest.status === "TAKEN") {
+        setRequestAccepted(currentRequest);
+        setClientRequestSectionNum(clientRequests.WAITING);
+      }
+    }
+  }, [currentRequest]);
+
+  useEffect(() => {
+    api().suscribeToWatchTruckLocations((array) => {
+      if (array) setTrucks(array);
     });
 
-    api().suscribeToPendingRequestsClientVersion(
-      { clientId: user.id },
-      ({ pendingRequests }) => {
-        console.log({ vic: pendingRequests.length });
-        if (pendingRequests.length > 0) {
-          console.log("EXISTEN REQUESTS PENDIENTES");
-          setIsLoading(true);
-        }
-      }
-    );
-
-    api().suscribeToWatchRequestsTakenClientVersion(
-      { clientId: user.id },
-      ({ takenRequests }) => {
-        if (!takenRequests) return false;
-        if (takenRequests.length === 0) return false;
-        setIsLoading(false);
-        setRequestAccepted(takenRequests[0]);
-        const truckFound = trucks.find(
-          ({ driverId }) => driverId === takenRequests[0].driverId
-        );
-
-        setTruckRequestAccepted(truckFound);
-
-        // Cuando carga, si hay pedidos, cambiará de estado, sino no.
-        setSheetSectionToWaiting(200);
-      }
-    );
-  }, [userLocation]);
+    api().suscibeToRequestChanges({ clientId: user.id }, (request) => {
+      if (request) setCurrentRequest(request);
+    });
+  }, []);
 
   const setSheetSectionToRequesting = () => {
     addBusToFireStore();
@@ -112,7 +99,7 @@ export const HomeScreen = ({ navigation }) => {
       waterQuantity: 200,
       trucks,
     });
-    setIsLoading(true)
+    setIsLoading(true);
   };
 
   const setSheetSectionToWaiting = async (waterQuantity) => {
@@ -148,17 +135,30 @@ export const HomeScreen = ({ navigation }) => {
   const updateUserLocation = (event) => {
     if (!event?.nativeEvent?.coordinate) return false;
     const location = event.nativeEvent.coordinate;
-
     if (isFocused) setUserLocation(location);
   };
 
   useEffect(() => {
-    if (userLocation)
+    if (userLocation) {
       api().sendClientCoordsToDb({
         cliendId: user.id,
         newCoords: userLocation,
       });
+    }
   }, [userLocation]);
+
+  useEffect(() => {
+    if (requestAccepted) {
+      console.log("buscando truck")
+      const t = trucks.find(
+        (item) => item.driverId === requestAccepted.driverId
+      );
+        
+      console.log("Actualizando current requeest")
+      // console.log({ t, trucks });
+      setTruckRequestAccepted(t);
+    }
+  }, [requestAccepted, trucks]);
 
   return (
     <View>
@@ -169,46 +169,41 @@ export const HomeScreen = ({ navigation }) => {
         // onRegionChange={(region) => setRegion(region)}
         // region={region}
         showsUserLocation={true}
-        userLocationUpdateInterval={10000}
+        userLocationUpdateInterval={15000}
         onUserLocationChange={updateUserLocation}
       >
         {truckRequestAccepted && (
           <>
             <Marker
               key={truckRequestAccepted.driverId}
-              coordinate={truckRequestAccepted.coordinate}
+              coordinate={{
+                longitude: truckRequestAccepted.longitude,
+                latitude: truckRequestAccepted.latitude,
+              }}
               title={truckRequestAccepted.driverId}
               description={"any description"}
               image={require("../../assets/bus.png")}
             ></Marker>
 
-            {/*  */}
             <MapViewDirections
               strokeWidth={3}
               origin={{
                 latitude: userLocation.latitude,
                 longitude: userLocation.longitude,
               }}
-              destination={truckRequestAccepted.coordinate}
+              destination={{
+                longitude: truckRequestAccepted.longitude,
+                latitude: truckRequestAccepted.latitude,
+              }}
               apikey={GOOGLE_MAPS_APIKEY}
+              onReady={(result) => {
+                setExpectedDistance(result.distance);
+                setExpectedTime(result.duration);
+              }}
             />
           </>
         )}
-        {!truckRequestAccepted &&
-          trucks.map(({ id, driverId, coordinate }) => {
-            console.log({ id, driverId, truckRequestAccepted });
-            return (
-              <Marker
-                key={driverId}
-                coordinate={coordinate}
-                title={id}
-                description={"any description"}
-                image={require("../../assets/bus.png")}
-
-                // onPress={setSheetSectionToRequesting}
-              />
-            );
-          })}
+        {trucks && !truckRequestAccepted && <AvailableTruckGroup trucks={trucks} />}
       </MapView>
       <BottomSheet ref={(ref) => (panelRef.current = ref)}>
         <FlexContainer pdBottom={50}>
@@ -218,13 +213,18 @@ export const HomeScreen = ({ navigation }) => {
 
           {clientRequestSectionNum === clientRequests.REQUESTING && (
             <RequestSheetContent
-              setSheetSectionToWaiting={requestWater} 
+              setSheetSectionToWaiting={requestWater}
               isLoading={isLoading}
             />
           )}
 
           {clientRequestSectionNum === clientRequests.WAITING && (
-            <WaitingSheetContent cancellRequest={cancellRequest} />
+            <WaitingSheetContent
+              cancellRequest={cancellRequest}
+              currentRequest={currentRequest}
+              expectedDistance={expectedDistance}
+              expectedTime={expectedTime}
+            />
           )}
         </FlexContainer>
       </BottomSheet>

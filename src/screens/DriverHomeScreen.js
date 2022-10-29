@@ -1,14 +1,8 @@
 import { StyleSheet, View } from "react-native";
 import BottomSheet from "react-native-simple-bottom-sheet";
-
 import MapView, { Marker } from "react-native-maps";
 import { useEffect, useRef, useState } from "react";
-import { RequestSheetContent } from "../components/userBottomSheetsClient/RequestSheetContent";
-import { WaitingSheetContent } from "../components/userBottomSheetsClient/WatingSheetContent";
-import { WelcomeSheetContent } from "../components/userBottomSheetsClient/WelcomeSheetContent";
-import { FloatContainer } from "../components/FloatContainer";
 import { Button, Text } from "@rneui/themed";
-import firebase from "../../database/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { useIsFocused } from "@react-navigation/native";
 import { useMapModal } from "../hooks/useMapModal";
@@ -17,6 +11,7 @@ import { api } from "../services/api";
 import { GOOGLE_MAPS_APIKEY } from "@env";
 import MapViewDirections from "react-native-maps-directions";
 import { getRegionForCoordinates } from "../helpers/getRegionForCoordinates";
+import { SectionList } from "react-native";
 
 const initialRegion = {
   latitude: 22.945646,
@@ -35,10 +30,11 @@ const initialMarker = {
   description: "Esta es la pipa número 1",
 };
 
-const clientRequests = {
-  HIDE: 0,
-  REQUESTING: 1,
-  WAITING: 2,
+const sectionList = {
+  WAITING_FOR_REQUESTS: 0,
+  ARRIVED: 1,
+  FILLING: 2,
+  CHARGING: 3,
 };
 
 export const DriverHomeScreen = ({ navigation }) => {
@@ -52,16 +48,29 @@ export const DriverHomeScreen = ({ navigation }) => {
   const [currentClientDestination, setCurrentClientDestination] =
     useState(null);
   const [currentRegion, setCurrentRegion] = useState(initialRegion);
+  const [section, setSection] = useState(sectionList.WAITING_FOR_REQUESTS);
+
+  const [waterToFill, setWaterToFill] = useState(0);
+  const [waterFilled, setWaterToFilled] = useState(0);
 
   useEffect(() => {
-    console.log("asignando");
+    console.log({ requestsAccepted });
     if (requestsAccepted.length > 0 && userLocation) {
-      console.log({ mostrando: requestsAccepted[0] });
       setCurrentClientDestination(requestsAccepted[0]);
       const r = formatCurretRegion(requestsAccepted[0]);
+
+      if (requestsAccepted[0].status === "TAKEN")
+        setSection(sectionList.ARRIVED);
+      if (requestsAccepted[0].status === "ARRIVED")
+        setSection(sectionList.FILLING);
+      if (requestsAccepted[0].status === "CHARGING")
+        setSection(sectionList.CHARGING);
+
+      setWaterToFill(requestsAccepted[0].waterQuantity);
+
       setCurrentRegion(r);
     }
-  }, [requestsAccepted]);
+  }, [userLocation]);
 
   const formatCurretRegion = (dest) => {
     const points = [
@@ -87,9 +96,6 @@ export const DriverHomeScreen = ({ navigation }) => {
   // }, [isFocused]);
 
   const panelRef = useRef(null);
-  const [clientRequestSectionNum, setClientRequestSectionNum] = useState(
-    clientRequests.HIDE
-  );
 
   const sendCurrentLocationToDb = async () => {
     if (!user) return false;
@@ -97,12 +103,6 @@ export const DriverHomeScreen = ({ navigation }) => {
       driverId: user.id,
       newCoords: userLocation,
     });
-  };
-
-  const onDisconnect = async () => {
-    // const ref = await firebase.firebase.database().ref(`truckLocations/${user.id}`)
-    // const ref = await firebase.firebase.database().ref(`.info/connected`)
-    // console.log({res: res[0].f})
   };
 
   useEffect(() => {
@@ -114,24 +114,29 @@ export const DriverHomeScreen = ({ navigation }) => {
   useEffect(() => {
     console.log({ user });
 
-    api().suscribeToClienRequests({ driverId: user.id }, () => {
-      console.log("suscriber!!!");
+    api().suscribeToWatchClientRequests({ driverId: user.id }, (requests) => {
+      if (!requests) setSection(SectionList.WAITING);
+
+      const notDoneRequests = requests.filter((item) => item.status !== "DONE");
+
+      const waitingRequests = notDoneRequests.filter(
+        (item) => item.status === "PENDING"
+      );
+      const takenRequests = notDoneRequests.filter(
+        (item) => item.status === "TAKEN" || "ARRIVED"
+      );
+
+      setRequestsByClients(waitingRequests);
+      setRequestsAccepted(takenRequests);
+      console.log({ notDoneRequests });
     });
 
-    api().suscribeToWatchClientRequests(
-      { driverId: user.id },
-      ({ requests }) => {
-        setRequestsByClients(requests);
-        console.log({ requests });
-      }
-    );
-
-    api().suscribeToWatchRequestsTakenDriverVersion(
-      { driverId: user.id },
-      ({ takenRequests }) => {
-        setRequestsAccepted(takenRequests);
-      }
-    );
+    // api().suscribeToWatchRequestsTakenDriverVersion(
+    //   { driverId: user.id },
+    //   ({ takenRequests }) => {
+    //     setRequestsAccepted(takenRequests);
+    //   }
+    // );
   }, []);
 
   const updateUserLocation = (event) => {
@@ -140,30 +145,38 @@ export const DriverHomeScreen = ({ navigation }) => {
     if (isFocused) setUserLocation(location);
   };
 
-  const setSheetSectionToRequesting = () => {
-    addBusToFireStore();
-    panelRef.current.togglePanel();
-    if (clientRequestSectionNum === clientRequests.HIDE)
-      setClientRequestSectionNum(clientRequests.REQUESTING);
+  const setRequesToTaken = async (requestId) => {
+    api().changeRequestStatus({ requestId, newStatus: "TAKEN" });
   };
 
-  const setSheetSectionToWaiting = () => {
-    if (clientRequestSectionNum === clientRequests.REQUESTING)
-      setClientRequestSectionNum(clientRequests.WAITING);
+  const setAlreadyArrived = () => {
+    const requestId = currentClientDestination.clientId;
+    api().changeRequestStatus({ requestId, newStatus: "ARRIVED" });
+    setSection(sectionList.FILLING);
   };
 
-  const cancellRequest = () => {
-    if (clientRequestSectionNum === clientRequests.WAITING)
-      setClientRequestSectionNum(clientRequests.HIDE);
+  const setCharging = () => {
+    const requestId = currentClientDestination.clientId;
+    api().changeRequestStatus({ requestId, newStatus: "CHARGING" });
+    setSection(sectionList.CHARGING);
+  };
+
+  const setRequestFinish = () => {
+    const requestId = currentClientDestination.clientId;
+    api().changeRequestStatus({ requestId, newStatus: "DONE" });
+    setSection(sectionList.WAITING_FOR_REQUESTS);
+  };
+
+  const fill = async () => {
+    setWaterToFilled(waterFilled + 1);
   };
 
   useEffect(() => {
-    // console.log({ clientRequestSectionNum });
-  }, [clientRequestSectionNum]);
-
-  const setRequesToTaken = async (requestId) => {
-    api().setRequestToTaken({ requestId });
-  };
+    console.log("Lllenando");
+    if (waterFilled >= waterToFill) {
+      // clearInterval(reduceWater)
+    }
+  }, [waterFilled]);
 
   return (
     <View>
@@ -175,7 +188,9 @@ export const DriverHomeScreen = ({ navigation }) => {
           request={requestsByClients[0]}
           isOpen={isOpen}
           closeModal={closeModal}
-          setRequesToTaken={setRequesToTaken}
+          setRequesToTaken={() =>
+            setRequesToTaken(requestsByClients[0].clientId)
+          }
         />
       )}
 
@@ -186,7 +201,7 @@ export const DriverHomeScreen = ({ navigation }) => {
         region={currentRegion}
         showsUserLocation={true}
         onUserLocationChange={updateUserLocation}
-        userLocationUpdateInterval={15000}
+        userLocationUpdateInterval={150000}
       >
         {userLocation && currentClientDestination && (
           <>
@@ -217,11 +232,29 @@ export const DriverHomeScreen = ({ navigation }) => {
 
       {/* Botoom sheet ------------------------------------------ */}
       <BottomSheet ref={(ref) => (panelRef.current = ref)}>
-        {userLocation && (
-          <Text>
-            {/* longitude: {userLocation.longitude}, latitude:{" "} */}
-            {userLocation.latitude},
-          </Text>
+        {section === sectionList.ARRIVED && (
+          <Button title={"Llegué"} onPress={setAlreadyArrived} />
+        )}
+
+        {section === sectionList.WAITING_FOR_REQUESTS && (
+          <Text>Esperando por clientes</Text>
+        )}
+
+        {section === sectionList.FILLING && (
+          <>
+            <Text>Llenar: {waterToFill}L</Text>
+            <Text>Llenado: {waterFilled}L</Text>
+            <Button title={"Llenar"} onPress={fill} />
+            <Button title={"llenar más"} />
+            <Button title={"Cobrar"} onPress={setCharging} />
+          </>
+        )}
+
+        {section === sectionList.CHARGING && (
+          <>
+            <Text>Cobrando $200 pesos</Text>
+            <Button title={"Terminar"} onPress={setRequestFinish} />
+          </>
         )}
 
         {requestsByClients.map(({ quantity, id, status }) => {

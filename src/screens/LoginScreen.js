@@ -2,27 +2,18 @@ import { useNavigation } from "@react-navigation/native";
 import { Button } from "@rneui/base";
 import { Image, Input, Text } from "@rneui/themed";
 import { useEffect, useState } from "react";
-import {
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { TouchableWithoutFeedback } from "react-native-gesture-handler";
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
 import { FlexContainer } from "../components/FlexContainer";
 import { useAuth } from "../hooks/useAuth";
-import firebase from "../../database/firebase";
+import { api } from "../services/api";
 
 export const LoginScreen = () => {
-  const [email, setEmail] = useState("jesus@gmail.com");
-  const [password, setPassword] = useState("123");
+  const [email, setEmail] = useState("client@gmail.com");
+  const [password, setPassword] = useState("12345678");
   const [isLoading, setIsLoading] = useState(null);
   const [errors, setErrors] = useState(null);
 
-  const { isLogged, login: loginOnDb } = useAuth();
+  const { isLogged, login: loginLocally } = useAuth();
   const navigation = useNavigation();
 
   const goToSignUpScreen = () => {
@@ -38,34 +29,22 @@ export const LoginScreen = () => {
   }, [isLogged]);
 
   const login = async () => {
-    let user = {};
+    setErrors("");
     setIsLoading(true);
     if (!email && !login) return false;
 
-    try {
-      const querySnapshot = await firebase.db
-        .collection("users")
-        .where("email", "==", email)
-        .where("password", "==", password)
-        .get();
-
-      querySnapshot.forEach((doc) => {
-        user = { ...doc.data(), id: doc.id };
+    api()
+      .login({ email, password })
+      .then((authUser) => {
+        loginLocally({ user: authUser });
+      })
+      .catch((e) => {
+        console.log({ e });
+        setErrors("Correo o contraseña incorrectos");
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
-
-      if (querySnapshot.empty)
-        throw new Error("El correo o contraseña son incorrectos");
-
-      console.log({ user });
-
-      if (user.type === "DRIVER")
-        throw new Error("Lo sentimos, pero no eres un cliente");
-      loginOnDb({ user });
-    } catch (error) {
-      setErrors(error.message);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   return (

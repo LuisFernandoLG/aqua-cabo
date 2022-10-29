@@ -11,7 +11,6 @@ import { ProfileScreen } from "../screens/ProfileScreen";
 import { SignUpScreen } from "../screens/SignUpScreen";
 import { CustomDrawerContent } from "./CustomDrawer";
 import { DefaultTheme } from "@react-navigation/native";
-import { StyleSheet } from "react-native";
 import { HomeScreen } from "../screens/HomeScreen";
 
 export const Router = () => {
