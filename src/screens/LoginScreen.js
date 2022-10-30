@@ -74,7 +74,7 @@ export const LoginScreen = () => {
           />
 
           <Input
-            keyboardType="visible-password"
+          secureTextEntry={true}
             placeholder="Contraseña"
             value={password}
             onChangeText={(value) => setPassword(value)}

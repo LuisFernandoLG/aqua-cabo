@@ -33,7 +33,7 @@ export const SignUpDriverScreen = () => {
   const { login: loginLocally } = useAuth();
 
   const goToLoginScreen = () => {
-    navigation.navigate("login");
+    navigation.navigate("DriverLogin");
   };
 
   const hanldeChange = (name, value) => {
@@ -86,7 +86,7 @@ export const SignUpDriverScreen = () => {
     >
       <FlexContainer flex_ai_c mVertical={100} mHorizontal={40}>
         <Button title="Atrás" type="clear" onPress={goToLoginScreen} />
-        <Image style={styles.logo} source={require("../../assets/logo.png")} />
+        <Text style={{marginVertical:20}} h4>Registro de conductor</Text>
         <Input
           placeholder="Nombre"
           style={styles.input}
