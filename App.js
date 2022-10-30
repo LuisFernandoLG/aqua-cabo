@@ -29,12 +29,16 @@ export default function App() {
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== "granted") {
       setErrorMsg("Permission to access location was denied");
+      await AsyncAlert()
     }
 
     let location = await Location.getCurrentPositionAsync({});
     location;
   };
-  useEffect(requestLocationPermission, []);
+
+  useEffect(() => {
+    requestLocationPermission();
+  }, []);
 
   return (
     <AuthProvider>

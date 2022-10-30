@@ -13,7 +13,7 @@ export const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(null);
   const [errors, setErrors] = useState(null);
 
-  const { isLogged, login: loginLocally } = useAuth();
+  const { isLogged, login: loginLocally, user } = useAuth();
   const navigation = useNavigation();
 
   const goToSignUpScreen = () => {
@@ -25,7 +25,7 @@ export const LoginScreen = () => {
   };
 
   useEffect(() => {
-    if (isLogged) navigation.navigate("Home");
+    if (isLogged && user.type === "CLIENT") navigation.navigate("Home");
   }, [isLogged]);
 
   const login = async () => {
@@ -63,7 +63,7 @@ export const LoginScreen = () => {
             />
           </View>
           <FlexContainer mVertical={20} flex_jc_c flex_ai_c>
-            <Text h3>Bievenido</Text>
+            <Text h3>Bienvenido</Text>
             <Text>Ingresa con tu cuenta de cliente</Text>
           </FlexContainer>
           <Input

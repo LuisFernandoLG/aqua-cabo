@@ -52,7 +52,6 @@ export const RequestSheetContent = ({
           onPress={handleOnClick}
           loading={isLoading}
           disabled={isLoading}
-          ty
         />
       </FlexContainer>
     </View>

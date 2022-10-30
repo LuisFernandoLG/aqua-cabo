@@ -2,8 +2,15 @@ import { createContext, useState } from "react";
 
 const authContext = createContext();
 
-const initialUser = null;
+const initialUser = {
+  id: "1234567890",
+  name:"Usuario",
+  phone:"1234567890",
+  email:"example@gmail.com",
+  password:"1234567890"
+};
 const inittialIsLogged = false;
+
 
 // ----------------------------------------------------
 const AuthProvider = ({ children }) => {
@@ -21,7 +28,7 @@ const AuthProvider = ({ children }) => {
 
   const setLogout = async () => {
     try {
-      setUser(null);
+      setUser(initialUser);
       setIsLogged(false);
     } catch (error) {
       console.log("error al guardar en local storage");

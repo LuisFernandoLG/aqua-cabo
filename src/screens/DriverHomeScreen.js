@@ -11,7 +11,7 @@ import { api } from "../services/api";
 import { GOOGLE_MAPS_APIKEY } from "@env";
 import MapViewDirections from "react-native-maps-directions";
 import { getRegionForCoordinates } from "../helpers/getRegionForCoordinates";
-import { SectionList } from "react-native";
+import { FlexContainer } from "../components/FlexContainer";
 
 const initialRegion = {
   latitude: 22.945646,
@@ -31,10 +31,11 @@ const initialMarker = {
 };
 
 const sectionList = {
-  WAITING_FOR_REQUESTS: 0,
-  ARRIVED: 1,
-  FILLING: 2,
-  CHARGING: 3,
+  WAITING_FOR_REQUESTS: "WAITING_FOR_REQUESTS",
+  PENDING: "PENDING",
+  TAKEN: "TAKEN",
+  ARRIVED: "ARRIVED",
+  CHARGING: "CHARGING",
 };
 
 export const DriverHomeScreen = ({ navigation }) => {
@@ -48,24 +49,16 @@ export const DriverHomeScreen = ({ navigation }) => {
   const [currentClientDestination, setCurrentClientDestination] =
     useState(null);
   const [currentRegion, setCurrentRegion] = useState(initialRegion);
-  const [section, setSection] = useState(sectionList.WAITING_FOR_REQUESTS);
 
   const [waterToFill, setWaterToFill] = useState(0);
   const [waterFilled, setWaterToFilled] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     console.log({ requestsAccepted });
     if (requestsAccepted.length > 0 && userLocation) {
       setCurrentClientDestination(requestsAccepted[0]);
       const r = formatCurretRegion(requestsAccepted[0]);
-
-      if (requestsAccepted[0].status === "TAKEN")
-        setSection(sectionList.ARRIVED);
-      if (requestsAccepted[0].status === "ARRIVED")
-        setSection(sectionList.FILLING);
-      if (requestsAccepted[0].status === "CHARGING")
-        setSection(sectionList.CHARGING);
-
       setWaterToFill(requestsAccepted[0].waterQuantity);
 
       setCurrentRegion(r);
@@ -112,12 +105,15 @@ export const DriverHomeScreen = ({ navigation }) => {
   }, [userLocation]);
 
   useEffect(() => {
-    console.log({ user });
-
     api().suscribeToWatchClientRequests({ driverId: user.id }, (requests) => {
-      if (!requests) setSection(SectionList.WAITING);
-
       const notDoneRequests = requests.filter((item) => item.status !== "DONE");
+      if (notDoneRequests.length === 0) {
+        setCurrentClientDestination(null);
+        setRequestsAccepted([]);
+        setRequestsByClients([]);
+        setLoading(false);
+        console.log("no hay nada");
+      }
 
       const waitingRequests = notDoneRequests.filter(
         (item) => item.status === "PENDING"
@@ -130,13 +126,6 @@ export const DriverHomeScreen = ({ navigation }) => {
       setRequestsAccepted(takenRequests);
       console.log({ notDoneRequests });
     });
-
-    // api().suscribeToWatchRequestsTakenDriverVersion(
-    //   { driverId: user.id },
-    //   ({ takenRequests }) => {
-    //     setRequestsAccepted(takenRequests);
-    //   }
-    // );
   }, []);
 
   const updateUserLocation = (event) => {
@@ -145,26 +134,32 @@ export const DriverHomeScreen = ({ navigation }) => {
     if (isFocused) setUserLocation(location);
   };
 
-  const setRequesToTaken = async (requestId) => {
-    api().changeRequestStatus({ requestId, newStatus: "TAKEN" });
+  const setRequesToTaken = (requestId) => {
+    api().changeRequestStatus({ requestId, newStatus: "TAKEN" }, (status) => {
+      setCurrentClientDestination({ ...currentClientDestination, status });
+    });
   };
 
   const setAlreadyArrived = () => {
     const requestId = currentClientDestination.clientId;
-    api().changeRequestStatus({ requestId, newStatus: "ARRIVED" });
-    setSection(sectionList.FILLING);
+    api().changeRequestStatus({ requestId, newStatus: "ARRIVED" }, (status) => {
+      setCurrentClientDestination({ ...currentClientDestination, status });
+    });
   };
 
   const setCharging = () => {
     const requestId = currentClientDestination.clientId;
-    api().changeRequestStatus({ requestId, newStatus: "CHARGING" });
-    setSection(sectionList.CHARGING);
+    api().changeRequestStatus(
+      { requestId, newStatus: "CHARGING" },
+      (status) => {
+        setCurrentClientDestination({ ...currentClientDestination, status });
+      }
+    );
   };
 
-  const setRequestFinish = () => {
+  const setRequestFinish = async () => {
     const requestId = currentClientDestination.clientId;
-    api().changeRequestStatus({ requestId, newStatus: "DONE" });
-    setSection(sectionList.WAITING_FOR_REQUESTS);
+    await api().changeRequestStatus({ requestId, newStatus: "DONE" });
   };
 
   const fill = async () => {
@@ -174,7 +169,6 @@ export const DriverHomeScreen = ({ navigation }) => {
   useEffect(() => {
     console.log("Lllenando");
     if (waterFilled >= waterToFill) {
-      // clearInterval(reduceWater)
     }
   }, [waterFilled]);
 
@@ -201,7 +195,7 @@ export const DriverHomeScreen = ({ navigation }) => {
         region={currentRegion}
         showsUserLocation={true}
         onUserLocationChange={updateUserLocation}
-        userLocationUpdateInterval={150000}
+        // userLocationUpdateInterval={150000}
       >
         {userLocation && currentClientDestination && (
           <>
@@ -232,38 +226,72 @@ export const DriverHomeScreen = ({ navigation }) => {
 
       {/* Botoom sheet ------------------------------------------ */}
       <BottomSheet ref={(ref) => (panelRef.current = ref)}>
-        {section === sectionList.ARRIVED && (
-          <Button title={"Llegué"} onPress={setAlreadyArrived} />
-        )}
-
-        {section === sectionList.WAITING_FOR_REQUESTS && (
-          <Text>Esperando por clientes</Text>
-        )}
-
-        {section === sectionList.FILLING && (
+        {!currentClientDestination && (
           <>
-            <Text>Llenar: {waterToFill}L</Text>
-            <Text>Llenado: {waterFilled}L</Text>
-            <Button title={"Llenar"} onPress={fill} />
-            <Button title={"llenar más"} />
-            <Button title={"Cobrar"} onPress={setCharging} />
-          </>
-        )}
-
-        {section === sectionList.CHARGING && (
-          <>
-            <Text>Cobrando $200 pesos</Text>
-            <Button title={"Terminar"} onPress={setRequestFinish} />
-          </>
-        )}
-
-        {requestsByClients.map(({ quantity, id, status }) => {
-          return (
-            <Text key={id}>
-              {quantity} {status}
+            <Text style={{ textAlign: "center" }} h4>
+              Esperando por clientes
             </Text>
-          );
-        })}
+          </>
+        )}
+
+        {currentClientDestination && (
+          <>
+            {currentClientDestination.status ===
+              sectionList.WAITING_FOR_REQUESTS && (
+              <Text>Esperando por clientes</Text>
+            )}
+
+            {currentClientDestination.status === sectionList.PENDING && (
+              <>
+                <Text style={{ textAlign: "center" }} h4>
+                  En proceso
+                </Text>
+              </>
+            )}
+
+            {currentClientDestination.status === sectionList.TAKEN && (
+              <>
+                <Text>Dirigete hacia la ubicación del cliente</Text>
+                <Button title={"Llegué"} onPress={setAlreadyArrived} />
+              </>
+            )}
+
+            {currentClientDestination.status === sectionList.ARRIVED && (
+              <FlexContainer flex_ai_c>
+                <Text h4>Llenar: {waterToFill} L</Text>
+                <Text h5>Progreso: {waterFilled}L</Text>
+                <Button
+                  containerStyle={{ minWidth: "50%", marginTop: 20 }}
+                  title={"Llenar"}
+                  onPress={fill}
+                />
+                <Button
+                  containerStyle={{ marginVertical: 10, minWidth: "50%" }}
+                  title={"llenar más"}
+                />
+                <Button
+                  containerStyle={{ minWidth: "50%" }}
+                  title={"Cobrar"}
+                  onPress={setCharging}
+                />
+              </FlexContainer>
+            )}
+
+            {currentClientDestination.status === sectionList.CHARGING && (
+              <>
+                <Text style={{ textAlign: "center" }} h4>
+                  Cobrar $200
+                </Text>
+                <Button title={"Hecho"} onPress={setRequestFinish} />
+              </>
+            )}
+          </>
+        )}
+        {Platform.OS === "ios" ? (
+          <View style={{ marginBottom: 40 }}></View>
+        ) : (
+          <View style={{ marginBottom: 20 }}></View>
+        )}
       </BottomSheet>
     </View>
   );

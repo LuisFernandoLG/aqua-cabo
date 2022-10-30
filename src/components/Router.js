@@ -12,6 +12,7 @@ import { SignUpScreen } from "../screens/SignUpScreen";
 import { CustomDrawerContent } from "./CustomDrawer";
 import { DefaultTheme } from "@react-navigation/native";
 import { HomeScreen } from "../screens/HomeScreen";
+import { SignUpDriverScreen } from "../screens/SignUpDriverScreen";
 
 export const Router = () => {
   const Drawer = createDrawerNavigator();
@@ -25,58 +26,51 @@ export const Router = () => {
     },
   };
 
+  const isDriver = user?.type === "DRIVER";
+
   return (
     <NavigationContainer theme={MyTheme}>
       <Drawer.Navigator
         initialRouteName="login"
         drawerContent={(props) => <CustomDrawerContent {...props} />}
       >
-        {user?.type === "DRIVER" && (
-          <>
-            <Drawer.Screen
-              name="DriverHome"
-              options={{ title: "Driver" }}
-              component={DriverHomeScreen}
-            />
-            <Drawer.Screen
-              name="Profile"
-              options={{ title: "Perfil" }}
-              component={ProfileScreen}
-            />
-            <Drawer.Screen
-              name="About"
-              options={{ title: "Acerca de" }}
-              component={AboutScreen}
-            />
-          </>
-        )}
+        <Drawer.Screen
+          name="DriverHome"
+          options={{
+            title: "Conductor",
+            drawerItemStyle: { display: isDriver ? "flex" : "none" },
+          }}
+          component={DriverHomeScreen}
+        />
+        <Drawer.Screen
+          name="Profile"
+          options={{ title: "Perfil" }}
+          component={ProfileScreen}
+        />
+        <Drawer.Screen
+          name="About"
+          options={{ title: "Acerca de" }}
+          component={AboutScreen}
+        />
 
-        {user?.type === "CLIENT" && (
-          <>
-            <Drawer.Screen
-              name="Home"
-              options={{ title: "AquaCabo" }}
-              component={HomeScreen}
-            />
-            <Drawer.Screen
-              name="Orders"
-              options={{ title: "Pedidos" }}
-              component={OrdersScreen}
-            />
-            <Drawer.Screen
-              name="Profile"
-              options={{ title: "Perfil" }}
-              component={ProfileScreen}
-            />
-            <Drawer.Screen
-              name="About"
-              options={{ title: "Acerca de" }}
-              component={AboutScreen}
-            />
-          </>
-        )}
+        <Drawer.Screen
+          name="Home"
+          options={{
+            title: "AquaCabo",
+            drawerItemStyle: { display: isDriver ? "none" : "flex" },
+          }}
+          component={HomeScreen}
+        />
+        <Drawer.Screen
+          name="Orders"
+          options={{
+            title: "Pedidos",
+            drawerItemStyle: { display: isDriver ? "none" : "flex" },
+          }}
+          component={OrdersScreen}
+        />
+    
 
-        {/* <Drawer.Screen name="noti" component={NotificationsScreen} /> */}
         <Drawer.Group screenOptions={{ presentation: "modal" }}>
           <Drawer.Screen
             name="DriverLogin"
@@ -87,10 +81,7 @@ export const Router = () => {
             }}
             component={DriverLoginScreen}
           />
-          <Drawer.Screen
-            name="notifications"
-            component={NotificationsScreen}
-          />
+          <Drawer.Screen name="notifications" component={NotificationsScreen} />
           <Drawer.Screen
             name="login"
             options={{
@@ -109,6 +100,19 @@ export const Router = () => {
             }}
             component={SignUpScreen}
           />
+
+          
+          <Drawer.Screen
+            name="SignUpDriver"
+            options={{
+              drawerItemStyle: { display: "none" },
+              headerShown: false,
+              swipeEdgeWidth: 0,
+            }}
+            component={SignUpDriverScreen}
+          />
+
+
         </Drawer.Group>
       </Drawer.Navigator>
     </NavigationContainer>

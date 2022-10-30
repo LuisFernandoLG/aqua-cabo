@@ -23,7 +23,7 @@ const emailRegex =
   /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 const phoneRegex = /^([+]\d{2})?\d{10}$/;
 
-export const SignUpScreen = () => {
+export const SignUpDriverScreen = () => {
   const [form, setForm] = useState(initialForm);
   const [formErrors, setFormErrors] = useState(null);
   const [firebaseError, setFirebaseError] = useState(null);
@@ -61,7 +61,7 @@ export const SignUpScreen = () => {
       setFirebaseError(null);
       setLoading(true);
       api()
-        .registerClient({
+        .registerDriver({
           email: form.email,
           password: form.password,
           userForm: form,

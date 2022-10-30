@@ -1,8 +1,11 @@
 // import firebase from "../../database/firebase";
 import { manhattanDistance } from "../helpers/manhattanDistance";
-import { db } from "../../database/firebase2";
-import { set, ref, update, get, onValue } from "firebase/database";
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { db, auth } from "../../database/firebase2";
+import { set, ref, push, get, onValue, remove } from "firebase/database";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 
 export const api = () => {
   // It has a clean up
@@ -34,109 +37,67 @@ export const api = () => {
     }
   };
 
-  const suscribeToClienRequests = ({ driverId }, cb) => {
-    // const suscriber = firebase.db
-    //   .collection("requests")
-    //   .where("driverId", "==", "YKHOJksCsY0TJzWyH0r6")
-    //   .onSnapshot((querySnapshot) => {
-    //     // Snapshot
-    //     let requests = [];
-    //     querySnapshot.docs.forEach(async (doc) => {
-    //       // I need to know if it desapears when another screen is opened PENDING
-    //       const { driverId, clientId, distance, quantity, status } = doc.data();
-    //       const clientRef = firebase.db
-    //         .collection("clientLocations")
-    //         .doc(clientId);
-    //       const { longitude, latitude } = await clientRef.get();
-    //       requests.push({
-    //         driverId,
-    //         client: {
-    //           clientId,
-    //           longitude,
-    //           latitude,
-    //         },
-    //         distance,
-    //         quantity,
-    //         status,
-    //         id: doc.id,
-    //       });
-    //     });
-    //     cb({ requests });
-    //   });
-    // return () => suscriber();
+  const saveClientRequest = async ({ clientId, request }) => {
+    try {
+      const savedItem = await push(
+        ref(db, "doneRequests/" + clientId),
+        request
+      );
+      return savedItem;
+    } catch (error) {
+      console.log({ error });
+    }
   };
 
-  const changeRequestStatus = ({ newStatus, requestId }) => {
+  const removeClientRequest = async ({ requestId }) => {
     try {
-      set(ref(db, "clientRequests/" + requestId + "/status"), newStatus);
+      const savedItem = await remove(ref(db, "clientRequests/" + requestId));
+      return savedItem;
+    } catch (error) {
+      console.log({ error });
+    }
+  };
+
+  const changeRequestStatus = async ({ newStatus, requestId }, cb) => {
+    try {
+      await set(ref(db, "clientRequests/" + requestId + "/status"), newStatus);
+      cb(newStatus);
     } catch (error) {
       console.log({ errorRR: error });
     }
   };
 
-
   const suscribeToWatchClientRequests = async ({ driverId }, cb) => {
-    // console.log("YOU WERE SUSCRIBED TO suscribeToWatchClientRequests");
-
     const clientRequestsRef = ref(db, "clientRequests");
     onValue(clientRequestsRef, (snapshot) => {
-      const data = snapshot.val();
-      const array = Object.values(data);
-      // console.log({ driverId, array });
-      const requests = array.filter((item) => item.driverId === driverId);
-      cb(requests);
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const array = Object.values(data);
+        const requests = array.filter((item) => item.driverId === driverId);
+        cb(requests);
+      } else {
+        cb([]);
+      }
     });
-    // const suscriber = firebase.db
-    //   .collection("clientRequests")
-    //   .where("driverId", "==", driverId)
-    //   .where("status", "==", "PENDING")
-    //   .onSnapshot((querySnapshot) => {
-    //     let requests = [];
-    //     querySnapshot.docs.forEach((doc) => {
-    //       // I need to know if it desapears when another screen is opened PENDING
-    //       requests.push({
-    //         id: doc.id,
-    //         ...doc.data(),
-    //       });
-    //     });
-
-    //     cb({ requests });
-    //   });
-
-    // return () => suscriber();
   };
 
   const suscribeToWatchTruckLocations = async (cb) => {
     const truckLocationsRef = ref(db, "truckLocations");
     onValue(truckLocationsRef, (snapshot) => {
-      const data = snapshot.val();
-      const array = Object.values(data);
-      cb(array);
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const array = Object.values(data);
+        cb(array);
+      } else {
+        cb([]);
+      }
     });
-    // const suscriber = firebase.db
-    //   .collection("truckLocations")
-    //   .onSnapshot((querySnapshot) => {
-    //     let trucksArray = [];
-    //     querySnapshot.docs.forEach((doc) => {
-    //       // I need to know if it desapears when another screen is opened PENDING
-    //       const { driverId, longitude, latitude } = doc.data();
-    //       trucksArray.push({
-    //         driverId,
-    //         coordinate: { longitude, latitude },
-    //         id: doc.id,
-    //       });
-    //     });
-    //     cb({ trucksArray });
-    //   });
-    // return () => suscriber();
   };
 
-  const sendRequestToCloserDriver = async ({
-    clientId,
-    waterQuantity,
-    clientCoords,
-    trucks,
-  }) => {
+  const sendRequestToCloserDriver = async (
+    { clientId, waterQuantity, clientCoords, trucks },
+    cb
+  ) => {
     const truck = getCloserTruck({ trucks, clientCoords });
     const request = {
       clientCoords: clientCoords,
@@ -147,39 +108,11 @@ export const api = () => {
     };
 
     try {
-      set(ref(db, "clientRequests/" + clientId), request);
+      await set(ref(db, "clientRequests/" + clientId), request);
+      cb();
     } catch (error) {
       console.log({ errorRR: error });
     }
-  };
-
-  const setRequestToTaken = async ({ requestId }) => {
-    // try {
-    //   update(ref(db, "clientRequests/" + requestId + "/status"), "TAKEN");
-    // } catch (error) {
-    //   console.log({ errorRR: error });
-    // }
-  };
-
-  const suscribeToWatchRequestsTakenDriverVersion = async (
-    { driverId },
-    cb
-  ) => {
-    // const suscriber = firebase.db
-    //   .collection("clientRequests")
-    //   .where("driverId", "==", driverId)
-    //   .where("status", "==", "TAKEN")
-    //   .onSnapshot((querySnapshot) => {
-    //     let takenRequests = [];
-    //     querySnapshot.docs.forEach((doc) => {
-    //       takenRequests.push({
-    //         ...doc.data(),
-    //         id: doc.id,
-    //       });
-    //     });
-    //     cb({ takenRequests });
-    //   });
-    // return () => suscriber();
   };
 
   const suscibeToRequestChanges = ({ clientId }, cb) => {
@@ -189,53 +122,16 @@ export const api = () => {
       if (snapshot.exists()) {
         const data = snapshot.val();
         const array = Object.values(data);
-        // console.log({ array });
         const requestFound = array.find((item) => item.clientId === clientId);
         cb(requestFound);
+      } else {
+        cb([]);
       }
     });
   };
 
-  const suscribeToWatchRequestsTakenClientVersion = ({ clientId }, cb) => {
-    // const suscriber = firebase.db
-    //   .collection("clientRequests")
-    //   .where("clientId", "==", clientId)
-    //   .where("status", "==", "TAKEN")
-    //   .onSnapshot((querySnapshot) => {
-    //     let takenRequests = [];
-    //     querySnapshot.docs.forEach((doc) => {
-    //       takenRequests.push({
-    //         ...doc.data(),
-    //         id: doc.id,
-    //       });
-    //     });
-    //     cb({ takenRequests });
-    //   });
-    // return () => suscriber();
-  };
-
-  const suscribeToPendingRequestsClientVersion = ({ clientId }, cb) => {
-    // const suscriber = firebase.db
-    //   .collection("clientRequests")
-    //   .where("clientId", "==", clientId)
-    //   .where("status", "==", "PENDING")
-    //   .onSnapshot((querySnapshot) => {
-    //     let pendingRequests = [];
-    //     querySnapshot.docs.forEach((doc) => {
-    //       pendingRequests.push({
-    //         ...doc.data(),
-    //         id: doc.id,
-    //       });
-    //     });
-    //     cb({ pendingRequests });
-    //   });
-    // return () => suscriber();
-  };
-
   const login = async ({ email, password }) =>
     new Promise((resolve, reject) => {
-      const auth = getAuth();
-
       signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
           // Signed in
@@ -261,20 +157,64 @@ export const api = () => {
         });
     });
 
+  const registerClient = ({ email, password, userForm }) =>
+    new Promise((resolve, reject) => {
+      createUserWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+
+          userForm = { ...userForm, id: user.uid, type: "CLIENT" };
+
+          set(ref(db, "users/" + user.uid), userForm)
+            .then((_) => {
+              resolve(userForm);
+            })
+            .catch((error) => {
+              reject(error);
+            });
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          reject({errorCode, errorMessage});
+        });
+    });
+
+    const registerDriver = ({ email, password, userForm }) =>
+    new Promise((resolve, reject) => {
+      createUserWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+
+          userForm = { ...userForm, id: user.uid, type: "DRIVER" };
+
+          set(ref(db, "users/" + user.uid), userForm)
+            .then((_) => {
+              resolve(userForm);
+            })
+            .catch((error) => {
+              reject(error);
+            });
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          reject({errorCode, errorMessage});
+        });
+    });
+
   return {
     sendDriverCoordsToDb,
-    suscribeToClienRequests,
+    registerClient,registerDriver,
     sendClientCoordsToDb,
     suscribeToWatchTruckLocations,
     sendRequestToCloserDriver,
     suscibeToRequestChanges,
     suscribeToWatchClientRequests,
-    setRequestToTaken,
-    suscribeToWatchRequestsTakenDriverVersion,
-    suscribeToWatchRequestsTakenClientVersion,
-    suscribeToPendingRequestsClientVersion,
     login,
     changeRequestStatus,
+    removeClientRequest,
+    saveClientRequest,
   };
 };
 

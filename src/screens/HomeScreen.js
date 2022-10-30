@@ -13,6 +13,16 @@ import MapViewDirections from "react-native-maps-directions";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import { AvailableTruckGroup } from "../components/AvailableTruckGroup";
+import { Button, Text } from "@rneui/themed";
+import { Platform } from "react-native";
+
+const sectionList = {
+  PENDING: "PENDING",
+  WAITING_FOR_REQUESTS: "WAITING_FOR_REQUESTS",
+  TAKEN: "TAKEN",
+  ARRIVED: "ARRIVED",
+  CHARGING: "CHARGING",
+};
 
 const initialRegion = {
   latitude: 22.945646,
@@ -65,12 +75,9 @@ export const HomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     if (currentRequest) {
-      console.log("viendo que estao tiene")
-      console.log({currentRequest})
       if (currentRequest.status === "PENDING") setIsLoading(true);
       if (currentRequest.status === "TAKEN") {
         setRequestAccepted(currentRequest);
-        setClientRequestSectionNum(clientRequests.WAITING);
       }
     }
   }, [currentRequest]);
@@ -81,30 +88,41 @@ export const HomeScreen = ({ navigation }) => {
     });
 
     api().suscibeToRequestChanges({ clientId: user.id }, (request) => {
-      if (request) setCurrentRequest(request);
+      if (request.length === 0) {
+        setCurrentRequest(null);
+        setIsLoading(false);
+        setTruckRequestAccepted(null);
+        return null;
+      }
+      if (request.status === "DONE") {
+        saveRequest({ request });
+        setCurrentRequest(null);
+        setIsLoading(false);
+      } else {
+        assignTruck({ request });
+        setCurrentRequest(request);
+      }
     });
   }, []);
 
-  const setSheetSectionToRequesting = () => {
-    addBusToFireStore();
-    panelRef.current.togglePanel();
-    if (clientRequestSectionNum === clientRequests.HIDE)
-      setClientRequestSectionNum(clientRequests.REQUESTING);
+  const saveRequest = async ({ request }) => {
+    await api().saveClientRequest({
+      clientId: user.id,
+      request: request,
+    });
+
+    await api().removeClientRequest({ requestId: user.id });
+    console.log("borrado y removido con exito");
   };
 
-  const requestWater = () => {
+  const requestWater = async (water) => {
+    setIsLoading(true);
     api().sendRequestToCloserDriver({
       clientId: user.id,
       clientCoords: userLocation,
-      waterQuantity: 200,
+      waterQuantity: parseInt(water),
       trucks,
     });
-    setIsLoading(true);
-  };
-
-  const setSheetSectionToWaiting = async (waterQuantity) => {
-    if (clientRequestSectionNum === clientRequests.REQUESTING)
-      setClientRequestSectionNum(clientRequests.WAITING);
   };
 
   const cancellRequest = () => {
@@ -147,19 +165,10 @@ export const HomeScreen = ({ navigation }) => {
     }
   }, [userLocation]);
 
-  useEffect(() => {
-    if (requestAccepted) {
-      console.log("buscando truck")
-      const t = trucks.find(
-        (item) => item.driverId === requestAccepted.driverId
-      );
-        
-      console.log("Actualizando current requeest")
-      // console.log({ t, trucks });
-      setTruckRequestAccepted(t);
-    }
-  }, [requestAccepted, trucks]);
-
+  const assignTruck = ({ request }) => {
+    const t = trucks.find((item) => item.driverId === request.driverId);
+    setTruckRequestAccepted(t);
+  };
   return (
     <View>
       <MapView
@@ -203,30 +212,63 @@ export const HomeScreen = ({ navigation }) => {
             />
           </>
         )}
-        {trucks && !truckRequestAccepted && <AvailableTruckGroup trucks={trucks} />}
+        {trucks && !truckRequestAccepted && (
+          <AvailableTruckGroup trucks={trucks} />
+        )}
       </MapView>
+
       <BottomSheet ref={(ref) => (panelRef.current = ref)}>
         <FlexContainer pdBottom={50}>
-          {clientRequestSectionNum === clientRequests.HIDE && (
-            <WelcomeSheetContent />
-          )}
+          {!currentRequest ? (
+            <>
+              <RequestSheetContent
+                setSheetSectionToWaiting={requestWater}
+                isLoading={isLoading}
+              />
+            </>
+          ) : (
+            <>
+              {currentRequest.status === sectionList.PENDING && (
+                <>
+                  <Text style={{ textAlign: "center", marginBottom: 5 }} h4>
+                    Buscando pipa
+                  </Text>
+                  <FlexContainer flex_ai_c>
+                    <Button title="Solicitar pedido" loading={isLoading} />
+                  </FlexContainer>
+                </>
+              )}
 
-          {clientRequestSectionNum === clientRequests.REQUESTING && (
-            <RequestSheetContent
-              setSheetSectionToWaiting={requestWater}
-              isLoading={isLoading}
-            />
-          )}
+              {currentRequest.status === sectionList.TAKEN && (
+                <WaitingSheetContent
+                  currentRequest={currentRequest}
+                  expectedDistance={expectedDistance}
+                  expectedTime={expectedTime}
+                />
+              )}
 
-          {clientRequestSectionNum === clientRequests.WAITING && (
-            <WaitingSheetContent
-              cancellRequest={cancellRequest}
-              currentRequest={currentRequest}
-              expectedDistance={expectedDistance}
-              expectedTime={expectedTime}
-            />
+              {currentRequest.status === sectionList.ARRIVED && (
+                <>
+                  <Text style={{textAlign:"center"}} h4>El camión ha llegado</Text>
+                  <Text style={{textAlign:"center"}} h5>Prepara tus contenedores</Text>
+                </>
+              )}
+
+              {currentRequest.status === sectionList.CHARGING && (
+                <>
+                  <Text style={{textAlign:"center"}} h4>Por favor pague al chofer</Text>
+                  <Text style={{textAlign:"center"}} h4>$200</Text>
+
+                </>
+              )}
+            </>
           )}
         </FlexContainer>
+        {Platform.OS === "ios" ? (
+          <View style={{ marginBottom: 40 }}></View>
+        ) : (
+          <View style={{ marginBottom: 20 }}></View>
+        )}
       </BottomSheet>
     </View>
   );

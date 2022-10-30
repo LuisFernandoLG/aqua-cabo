@@ -20,11 +20,11 @@ export const DriverLoginScreen = () => {
   const [isLoading, setIsLoading] = useState(null);
   const [errors, setErrors] = useState(null);
 
-  const { isLogged, login: loginLocally } = useAuth();
+  const { isLogged, login: loginLocally, user } = useAuth();
   const navigation = useNavigation();
 
   useEffect(() => {
-    if (isLogged) navigation.navigate("DriverHome");
+    if (isLogged && user.type === "DRIVER") navigation.navigate("DriverHome");
   }, [isLogged]);
 
   const login = async () => {
@@ -45,7 +45,10 @@ export const DriverLoginScreen = () => {
         setIsLoading(false);
       });
   };
-  const goToSignUpScreen = () => {};
+  const goToSignUpScreen = () => {
+    navigation.navigate("SignUpDriver");
+
+  };
   const goToClientLoginScreen = () => {
     navigation.navigate("login");
   };
@@ -65,7 +68,7 @@ export const DriverLoginScreen = () => {
               />
             </View>
             <FlexContainer mVertical={20} flex_jc_c flex_ai_c>
-              <Text h3>Bievenido</Text>
+              <Text h3>Bienvenido</Text>
               <Text>Ingresa con tu cuenta de conductor</Text>
             </FlexContainer>
             <Input
