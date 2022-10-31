@@ -7,6 +7,8 @@ import { FlexContainer } from "../components/FlexContainer";
 import { firebaseErrors } from "../constants/firebaseErrors";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { ScrollView } from "react-native";
+import { Dimensions } from "react-native";
 
 const initialForm = {
   name: "Víctor",
@@ -80,84 +82,94 @@ export const SignUpDriverScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <FlexContainer flex_ai_c mVertical={100} mHorizontal={40}>
-        <Button title="Atrás" type="clear" onPress={goToLoginScreen} />
-        <Text style={{marginVertical:20}} h4>Registro de conductor</Text>
-        <Input
-          placeholder="Nombre"
-          style={styles.input}
-          onChangeText={(value) => hanldeChange("name", value)}
-          value={form.name}
-          errorStyle={{ color: "red" }}
-          errorMessage={formErrors?.name}
-          label={
-            <Text style={styles.label}>{form.name !== "" ? "Nombre" : ""}</Text>
-          }
-        />
-        <Input
-          keyboardType="email-address"
-          placeholder="Correo"
-          value={form.email}
-          style={styles.input}
-          onChangeText={(value) => hanldeChange("email", value)}
-          errorStyle={{ color: "red" }}
-          errorMessage={formErrors?.email}
-          label={
-            <Text style={styles.label}>
-              {form.email !== "" ? "Correo" : ""}
-            </Text>
-          }
-        />
-        <Input
-          style={styles.input}
-          keyboardType="phone-pad"
-          placeholder="Teléfono"
-          value={form.phone}
-          onChangeText={(value) => hanldeChange("phone", value)}
-          errorStyle={{ color: "red" }}
-          errorMessage={formErrors?.phone}
-          label={
-            <Text style={styles.label}>
-              {form.phone !== "" ? "Teléfono" : ""}
-            </Text>
-          }
-        />
+    <ScrollView>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
+        <FlexContainer flex_ai_c mVertical={100} mHorizontal={40}>
+          <Button title="Atrás" type="clear" onPress={goToLoginScreen} />
+          <Text style={{ marginVertical: 20 }} h4>
+            Registro de conductor
+          </Text>
+          <Input
+            placeholder="Nombre"
+            style={styles.input}
+            onChangeText={(value) => hanldeChange("name", value)}
+            value={form.name}
+            errorStyle={{ color: "red" }}
+            errorMessage={formErrors?.name}
+            label={
+              <Text style={styles.label}>
+                {form.name !== "" ? "Nombre" : ""}
+              </Text>
+            }
+          />
+          <Input
+            keyboardType="email-address"
+            placeholder="Correo"
+            value={form.email}
+            style={styles.input}
+            onChangeText={(value) => hanldeChange("email", value)}
+            errorStyle={{ color: "red" }}
+            errorMessage={formErrors?.email}
+            label={
+              <Text style={styles.label}>
+                {form.email !== "" ? "Correo" : ""}
+              </Text>
+            }
+          />
+          <Input
+            style={styles.input}
+            keyboardType="phone-pad"
+            placeholder="Teléfono"
+            value={form.phone}
+            onChangeText={(value) => hanldeChange("phone", value)}
+            errorStyle={{ color: "red" }}
+            errorMessage={formErrors?.phone}
+            label={
+              <Text style={styles.label}>
+                {form.phone !== "" ? "Teléfono" : ""}
+              </Text>
+            }
+          />
 
-        <Input
-          style={styles.input}
-          // secureTextEntry={true}
-          placeholder="Contraseña"
-          value={form.password}
-          onChangeText={(value) => hanldeChange("password", value)}
-          errorMessage={formErrors?.password}
-          label={
-            <Text style={styles.label}>
-              {form.password !== "" ? "Contraseña" : ""}
-            </Text>
-          }
-        />
+          <Input
+            style={styles.input}
+            // secureTextEntry={true}
+            placeholder="Contraseña"
+            value={form.password}
+            onChangeText={(value) => hanldeChange("password", value)}
+            errorMessage={formErrors?.password}
+            label={
+              <Text style={styles.label}>
+                {form.password !== "" ? "Contraseña" : ""}
+              </Text>
+            }
+          />
 
-        <Input
-          style={styles.input}
-          // secureTextEntry={true}
-          value={form.repassword}
-          placeholder="Confirmar contraseña"
-          onChangeText={(value) => hanldeChange("repassword", value)}
-          errorMessage={formErrors?.repassword}
-          label={
-            <Text style={styles.label}>
-              {form.repassword !== "" ? "Confirmar contraseña" : ""}
-            </Text>
-          }
-        />
-        <Text style={styles.firebaseErrorr}>{firebaseError}</Text>
-        <Button title="Registrarse" onPress={handleSubmit} loading={loading} />
-      </FlexContainer>
-    </KeyboardAvoidingView>
+          <Input
+            style={styles.input}
+            // secureTextEntry={true}
+            value={form.repassword}
+            placeholder="Confirmar contraseña"
+            onChangeText={(value) => hanldeChange("repassword", value)}
+            errorMessage={formErrors?.repassword}
+            label={
+              <Text style={styles.label}>
+                {form.repassword !== "" ? "Confirmar contraseña" : ""}
+              </Text>
+            }
+          />
+          <Text style={styles.firebaseErrorr}>{firebaseError}</Text>
+          <Button
+            title="Registrarse"
+            onPress={handleSubmit}
+            loading={loading}
+          />
+        </FlexContainer>
+      </KeyboardAvoidingView>
+    </ScrollView>
   );
 };
 
@@ -182,10 +194,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   container: {
-    // borderWidth:2,
-    // borderColor:"red",
+    
+    width: Dimensions.get("window").width,
+    paddingHorizontal: 20,
     flex: 1,
-    justifyContent: "center",
   },
   inner: {
     marginBottom: Platform.OS === "ios" ? 0 : 80,

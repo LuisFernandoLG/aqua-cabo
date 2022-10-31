@@ -12,6 +12,8 @@ import { GOOGLE_MAPS_APIKEY } from "@env";
 import MapViewDirections from "react-native-maps-directions";
 import { getRegionForCoordinates } from "../helpers/getRegionForCoordinates";
 import { FlexContainer } from "../components/FlexContainer";
+import { KeyboardAvoidingView } from "react-native";
+import { Platform } from "react-native";
 
 const initialRegion = {
   latitude: 22.945646,
@@ -55,7 +57,6 @@ export const DriverHomeScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    console.log({ requestsAccepted });
     if (requestsAccepted.length > 0 && userLocation) {
       setCurrentClientDestination(requestsAccepted[0]);
       const r = formatCurretRegion(requestsAccepted[0]);
@@ -100,6 +101,7 @@ export const DriverHomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     if (userLocation) {
+      console.log("ENVIANDO. . ... . .. . . .");
       sendCurrentLocationToDb();
     }
   }, [userLocation]);
@@ -112,7 +114,6 @@ export const DriverHomeScreen = ({ navigation }) => {
         setRequestsAccepted([]);
         setRequestsByClients([]);
         setLoading(false);
-        console.log("no hay nada");
       }
 
       const waitingRequests = notDoneRequests.filter(
@@ -122,6 +123,7 @@ export const DriverHomeScreen = ({ navigation }) => {
         (item) => item.status === "TAKEN" || "ARRIVED"
       );
 
+      console.log({ waitingRequests });
       setRequestsByClients(waitingRequests);
       setRequestsAccepted(takenRequests);
       console.log({ notDoneRequests });
@@ -167,14 +169,12 @@ export const DriverHomeScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
-    console.log("Lllenando");
     if (waterFilled >= waterToFill) {
     }
   }, [waterFilled]);
 
   return (
     <View>
-      {/* { requestsByClients.length > 0 && } */}
       {userLocation && requestsByClients.length > 0 && (
         <ModalX
           driverCoords={userLocation}
@@ -195,7 +195,7 @@ export const DriverHomeScreen = ({ navigation }) => {
         region={currentRegion}
         showsUserLocation={true}
         onUserLocationChange={updateUserLocation}
-        // userLocationUpdateInterval={150000}
+        userLocationUpdateInterval={5000}
       >
         {userLocation && currentClientDestination && (
           <>
@@ -225,74 +225,79 @@ export const DriverHomeScreen = ({ navigation }) => {
       </MapView>
 
       {/* Botoom sheet ------------------------------------------ */}
-      <BottomSheet ref={(ref) => (panelRef.current = ref)}>
-        {!currentClientDestination && (
-          <>
-            <Text style={{ textAlign: "center" }} h4>
-              Esperando por clientes
-            </Text>
-          </>
-        )}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
+        <BottomSheet ref={(ref) => (panelRef.current = ref)}>
+          {!currentClientDestination && (
+            <>
+              <Text style={{ textAlign: "center" }} h4>
+                Esperando por clientes
+              </Text>
+            </>
+          )}
 
-        {currentClientDestination && (
-          <>
-            {currentClientDestination.status ===
-              sectionList.WAITING_FOR_REQUESTS && (
-              <Text>Esperando por clientes</Text>
-            )}
+          {currentClientDestination && (
+            <>
+              {currentClientDestination.status ===
+                sectionList.WAITING_FOR_REQUESTS && (
+                <Text>Esperando por clientes</Text>
+              )}
 
-            {currentClientDestination.status === sectionList.PENDING && (
-              <>
-                <Text style={{ textAlign: "center" }} h4>
-                  En proceso
-                </Text>
-              </>
-            )}
+              {currentClientDestination.status === sectionList.PENDING && (
+                <>
+                  <Text style={{ textAlign: "center" }} h4>
+                    En proceso
+                  </Text>
+                </>
+              )}
 
-            {currentClientDestination.status === sectionList.TAKEN && (
-              <>
-                <Text>Dirigete hacia la ubicación del cliente</Text>
-                <Button title={"Llegué"} onPress={setAlreadyArrived} />
-              </>
-            )}
+              {currentClientDestination.status === sectionList.TAKEN && (
+                <>
+                  <Text>Dirigete hacia la ubicación del cliente</Text>
+                  <Button title={"Llegué"} onPress={setAlreadyArrived} />
+                </>
+              )}
 
-            {currentClientDestination.status === sectionList.ARRIVED && (
-              <FlexContainer flex_ai_c>
-                <Text h4>Llenar: {waterToFill} L</Text>
-                <Text h5>Progreso: {waterFilled}L</Text>
-                <Button
-                  containerStyle={{ minWidth: "50%", marginTop: 20 }}
-                  title={"Llenar"}
-                  onPress={fill}
-                />
-                <Button
-                  containerStyle={{ marginVertical: 10, minWidth: "50%" }}
-                  title={"llenar más"}
-                />
-                <Button
-                  containerStyle={{ minWidth: "50%" }}
-                  title={"Cobrar"}
-                  onPress={setCharging}
-                />
-              </FlexContainer>
-            )}
+              {currentClientDestination.status === sectionList.ARRIVED && (
+                <FlexContainer flex_ai_c>
+                  <Text h4>Llenar: {waterToFill} L</Text>
+                  <Text h5>Progreso: {waterFilled}L</Text>
+                  <Button
+                    containerStyle={{ minWidth: "50%", marginTop: 20 }}
+                    title={"Llenar"}
+                    onPress={fill}
+                  />
+                  <Button
+                    containerStyle={{ marginVertical: 10, minWidth: "50%" }}
+                    title={"llenar más"}
+                  />
+                  <Button
+                    containerStyle={{ minWidth: "50%" }}
+                    title={"Cobrar"}
+                    onPress={setCharging}
+                  />
+                </FlexContainer>
+              )}
 
-            {currentClientDestination.status === sectionList.CHARGING && (
-              <>
-                <Text style={{ textAlign: "center" }} h4>
-                  Cobrar $200
-                </Text>
-                <Button title={"Hecho"} onPress={setRequestFinish} />
-              </>
-            )}
-          </>
-        )}
-        {Platform.OS === "ios" ? (
-          <View style={{ marginBottom: 40 }}></View>
-        ) : (
-          <View style={{ marginBottom: 20 }}></View>
-        )}
-      </BottomSheet>
+              {currentClientDestination.status === sectionList.CHARGING && (
+                <>
+                  <Text style={{ textAlign: "center" }} h4>
+                    Cobrar $200
+                  </Text>
+                  <Button title={"Hecho"} onPress={setRequestFinish} />
+                </>
+              )}
+            </>
+          )}
+          {Platform.OS === "ios" ? (
+            <View style={{ marginBottom: 40 }}></View>
+          ) : (
+            <View style={{ marginBottom: 20 }}></View>
+          )}
+        </BottomSheet>
+      </KeyboardAvoidingView>
     </View>
   );
 };

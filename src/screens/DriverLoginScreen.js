@@ -1,4 +1,3 @@
-import firebase from "../../database/firebase";
 import { Image, Input, Button, Text } from "@rneui/themed";
 import React, { useEffect, useState } from "react";
 import {
@@ -13,10 +12,12 @@ import { FlexContainer } from "../components/FlexContainer";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigation } from "@react-navigation/native";
 import { api } from "../services/api";
+import { ScrollView } from "react-native";
+import { Dimensions } from "react-native";
 
 export const DriverLoginScreen = () => {
-  const [email, setEmail] = useState("iram@cabo.com");
-  const [password, setPassword] = useState("12345678");
+  const [email, setEmail] = useState("vicvvb@gmail.combebeb");
+  const [password, setPassword] = useState("1234567890");
   const [isLoading, setIsLoading] = useState(null);
   const [errors, setErrors] = useState(null);
 
@@ -28,7 +29,7 @@ export const DriverLoginScreen = () => {
   }, [isLogged]);
 
   const login = async () => {
-    setErrors("")
+    setErrors("");
     setIsLoading(true);
     if (!email && !login) return false;
 
@@ -47,18 +48,17 @@ export const DriverLoginScreen = () => {
   };
   const goToSignUpScreen = () => {
     navigation.navigate("SignUpDriver");
-
   };
   const goToClientLoginScreen = () => {
     navigation.navigate("login");
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <ScrollView>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
         <View style={styles.inner}>
           <FlexContainer flex_jc_c flex_ai_c pdHorizontal={50}>
             <View style={styles.logoContainer}>
@@ -115,23 +115,26 @@ export const DriverLoginScreen = () => {
             </FlexContainer>
           </FlexContainer>
         </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    width: Dimensions.get("window").width,
+    paddingHorizontal: 20,
+    // flex: 1,
+    marginTop: 10,
+    borderWidth: 2,
   },
   inner: {
-    flex: 1,
-    marginBottom: 80,
+    marginBottom: Platform.OS === "ios" ? 0 : 80,
     justifyContent: "space-around",
   },
   logo: {
-    width: 220,
-    height: 130,
+    width: 200,
+    height: 110,
     resizeMode: "contain",
   },
   logoContainer: {

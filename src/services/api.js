@@ -37,6 +37,23 @@ export const api = () => {
     }
   };
 
+  const getDoneRequestByUser = ({ clientId }) =>
+    new Promise((resolve, reject) => {
+      const path = `/doneRequests/${clientId}`;
+      get(ref(db, path))
+        .then((snapshot) => {
+          if (snapshot.exists()) {
+            const data = Object.values(snapshot.val());
+            resolve(data);
+          } else {
+            reject("No data available");
+          }
+        })
+        .catch((error) => {
+          reject(error);
+        });
+    });
+
   const saveClientRequest = async ({ clientId, request }) => {
     try {
       const savedItem = await push(
@@ -98,6 +115,11 @@ export const api = () => {
     { clientId, waterQuantity, clientCoords, trucks },
     cb
   ) => {
+    var today = new Date();
+
+    // obtener la fecha y la hora
+    var now = today.toLocaleString();
+
     const truck = getCloserTruck({ trucks, clientCoords });
     const request = {
       clientCoords: clientCoords,
@@ -105,6 +127,7 @@ export const api = () => {
       waterQuantity: waterQuantity,
       status: "PENDING",
       driverId: truck.driverId,
+      date: now,
     };
 
     try {
@@ -116,7 +139,6 @@ export const api = () => {
   };
 
   const suscibeToRequestChanges = ({ clientId }, cb) => {
-    console.log({ clientId });
     const clientRequestsRef = ref(db, "clientRequests");
     onValue(clientRequestsRef, (snapshot) => {
       if (snapshot.exists()) {
@@ -176,11 +198,11 @@ export const api = () => {
         .catch((error) => {
           const errorCode = error.code;
           const errorMessage = error.message;
-          reject({errorCode, errorMessage});
+          reject({ errorCode, errorMessage });
         });
     });
 
-    const registerDriver = ({ email, password, userForm }) =>
+  const registerDriver = ({ email, password, userForm }) =>
     new Promise((resolve, reject) => {
       createUserWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
@@ -199,13 +221,14 @@ export const api = () => {
         .catch((error) => {
           const errorCode = error.code;
           const errorMessage = error.message;
-          reject({errorCode, errorMessage});
+          reject({ errorCode, errorMessage });
         });
     });
 
   return {
     sendDriverCoordsToDb,
-    registerClient,registerDriver,
+    registerClient,
+    registerDriver,
     sendClientCoordsToDb,
     suscribeToWatchTruckLocations,
     sendRequestToCloserDriver,
@@ -215,6 +238,7 @@ export const api = () => {
     changeRequestStatus,
     removeClientRequest,
     saveClientRequest,
+    getDoneRequestByUser,
   };
 };
 

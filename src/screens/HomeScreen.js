@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, StyleSheet, View } from "react-native";
 import BottomSheet from "react-native-simple-bottom-sheet";
 
 import MapView, { Marker } from "react-native-maps";
@@ -15,6 +15,7 @@ import { useAuth } from "../hooks/useAuth";
 import { AvailableTruckGroup } from "../components/AvailableTruckGroup";
 import { Button, Text } from "@rneui/themed";
 import { Platform } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 
 const sectionList = {
   PENDING: "PENDING",
@@ -74,15 +75,6 @@ export const HomeScreen = ({ navigation }) => {
   // A su vez, la documentación recomienda usar el hooj useIsFocussed para sabre si está siendo mostrada la patanlla o no
 
   useEffect(() => {
-    if (currentRequest) {
-      if (currentRequest.status === "PENDING") setIsLoading(true);
-      if (currentRequest.status === "TAKEN") {
-        setRequestAccepted(currentRequest);
-      }
-    }
-  }, [currentRequest]);
-
-  useEffect(() => {
     api().suscribeToWatchTruckLocations((array) => {
       if (array) setTrucks(array);
     });
@@ -99,8 +91,12 @@ export const HomeScreen = ({ navigation }) => {
         setCurrentRequest(null);
         setIsLoading(false);
       } else {
-        assignTruck({ request });
-        setCurrentRequest(request);
+        if (request.status === "TAKEN") {
+          assignTruck({ request });
+          setCurrentRequest(request);
+        } else {
+          setCurrentRequest(request);
+        }
       }
     });
   }, []);
@@ -112,7 +108,6 @@ export const HomeScreen = ({ navigation }) => {
     });
 
     await api().removeClientRequest({ requestId: user.id });
-    console.log("borrado y removido con exito");
   };
 
   const requestWater = async (water) => {
@@ -158,6 +153,7 @@ export const HomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     if (userLocation) {
+      console.log("mandando ubicacionc")
       api().sendClientCoordsToDb({
         cliendId: user.id,
         newCoords: userLocation,
@@ -165,10 +161,16 @@ export const HomeScreen = ({ navigation }) => {
     }
   }, [userLocation]);
 
-  const assignTruck = ({ request }) => {
-    const t = trucks.find((item) => item.driverId === request.driverId);
+  const assignTruck = () => {
+    const t = trucks.find((item) => item.driverId === currentRequest.driverId);
     setTruckRequestAccepted(t);
   };
+
+  // *! MEJORAR, A VECES DEJA DE FUNCIONAR, TAL VEZ CUANDO SE ABRA DE NUEVO LA APP NO APREZCA
+  useEffect(() => {
+    if (trucks && currentRequest) assignTruck();
+  }, [currentRequest]);
+
   return (
     <View>
       <MapView
@@ -217,59 +219,72 @@ export const HomeScreen = ({ navigation }) => {
         )}
       </MapView>
 
-      <BottomSheet ref={(ref) => (panelRef.current = ref)}>
-        <FlexContainer pdBottom={50}>
-          {!currentRequest ? (
-            <>
-              <RequestSheetContent
-                setSheetSectionToWaiting={requestWater}
-                isLoading={isLoading}
-              />
-            </>
-          ) : (
-            <>
-              {currentRequest.status === sectionList.PENDING && (
+      {/* <ScrollView> */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <BottomSheet ref={(ref) => (panelRef.current = ref)}>
+            <FlexContainer pdBottom={50}>
+              {!currentRequest ? (
                 <>
-                  <Text style={{ textAlign: "center", marginBottom: 5 }} h4>
-                    Buscando pipa
-                  </Text>
-                  <FlexContainer flex_ai_c>
-                    <Button title="Solicitar pedido" loading={isLoading} />
-                  </FlexContainer>
+                  <RequestSheetContent
+                    setSheetSectionToWaiting={requestWater}
+                    isLoading={isLoading}
+                  />
+                </>
+              ) : (
+                <>
+                  {currentRequest.status === sectionList.PENDING && (
+                    <>
+                      <Text style={{ textAlign: "center", marginBottom: 5 }} h4>
+                        Buscando pipa
+                      </Text>
+                      <FlexContainer flex_ai_c>
+                        <Button title="Solicitar pedido" loading={isLoading} />
+                      </FlexContainer>
+                    </>
+                  )}
+
+                  {currentRequest.status === sectionList.TAKEN && (
+                    <WaitingSheetContent
+                      currentRequest={currentRequest}
+                      expectedDistance={expectedDistance}
+                      expectedTime={expectedTime}
+                    />
+                  )}
+
+                  {currentRequest.status === sectionList.ARRIVED && (
+                    <>
+                      <Text style={{ textAlign: "center" }} h4>
+                        El camión ha llegado
+                      </Text>
+                      <Text style={{ textAlign: "center" }} h5>
+                        Prepara tus contenedores
+                      </Text>
+                    </>
+                  )}
+
+                  {currentRequest.status === sectionList.CHARGING && (
+                    <>
+                      <Text style={{ textAlign: "center" }} h4>
+                        Por favor pague al chofer
+                      </Text>
+                      <Text style={{ textAlign: "center" }} h4>
+                        $200
+                      </Text>
+                    </>
+                  )}
                 </>
               )}
-
-              {currentRequest.status === sectionList.TAKEN && (
-                <WaitingSheetContent
-                  currentRequest={currentRequest}
-                  expectedDistance={expectedDistance}
-                  expectedTime={expectedTime}
-                />
-              )}
-
-              {currentRequest.status === sectionList.ARRIVED && (
-                <>
-                  <Text style={{textAlign:"center"}} h4>El camión ha llegado</Text>
-                  <Text style={{textAlign:"center"}} h5>Prepara tus contenedores</Text>
-                </>
-              )}
-
-              {currentRequest.status === sectionList.CHARGING && (
-                <>
-                  <Text style={{textAlign:"center"}} h4>Por favor pague al chofer</Text>
-                  <Text style={{textAlign:"center"}} h4>$200</Text>
-
-                </>
-              )}
-            </>
-          )}
-        </FlexContainer>
-        {Platform.OS === "ios" ? (
-          <View style={{ marginBottom: 40 }}></View>
-        ) : (
-          <View style={{ marginBottom: 20 }}></View>
-        )}
-      </BottomSheet>
+            </FlexContainer>
+            {Platform.OS === "ios" ? (
+              <View style={{ marginBottom: 40 }}></View>
+            ) : (
+              <View style={{ marginBottom: 20 }}></View>
+            )}
+          </BottomSheet>
+        </KeyboardAvoidingView>
+      {/* </ScrollView> */}
     </View>
   );
 };

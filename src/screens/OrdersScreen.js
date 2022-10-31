@@ -4,48 +4,31 @@ import { useEffect, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 import firebase from "../../database/firebase.js";
 import { FlexContainer } from "../components/FlexContainer.jsx";
+import { api } from "../services/api.js";
+import {useAuth} from "../hooks/useAuth"
+import { formatTimestamp } from "../utils/formatTimestamp.js";
 
 const initialOrders = [];
 
 export const OrdersScreen = () => {
   const [orders, setOrders] = useState(initialOrders);
 
-  const keyExtractor = (item, index) => item.id;
-
-  const addOrderToDB = () => {
-    firebase.db.collection("orders").add({
-      date: "25/07/2022",
-      quantity: 203,
-    });
-  };
+  const {user}= useAuth()
 
   useEffect(() => {
-    firebase.db.collection("orders").onSnapshot((querySnapshot) => {
-      let orders = [];
-      querySnapshot.docs.forEach((doc) => {
-        const { date, quantity } = doc.data();
-        orders.push({ date, quantity, id: doc.id });
-      });
-
-      console.log({ orders });
-      setOrders(orders);
-    });
-
-    console.log("holis");
+    api().getDoneRequestByUser({clientId:user.id}).then((data)=>{
+      setOrders(data)
+    })
   }, []);
 
   return (
     <FlexContainer>
-      <Button title="Agregar" onPress={addOrderToDB} />
       <FlatList
-        keyExtractor={keyExtractor}
         data={orders}
         renderItem={({ item }) => (
           <ListItem.Content style={styles.itemContainer}>
-            <ListItem.Title>{item.date}</ListItem.Title>
-            <View style={styles.subtitleView}>
-              <Text style={styles.ratingText}>{item.quantity}</Text>
-            </View>
+            <Text style={{fontSize:18, fontWeight:"800"}}>Fecha: {item.date}</Text>
+              <Text>Cantidad: {item.waterQuantity}</Text>
           </ListItem.Content>
         )}
       />

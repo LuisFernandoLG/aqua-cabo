@@ -35,6 +35,14 @@ export const Router = () => {
         drawerContent={(props) => <CustomDrawerContent {...props} />}
       >
         <Drawer.Screen
+          name="Home"
+          options={{
+            title: "AquaCabo",
+            drawerItemStyle: { display: isDriver ? "none" : "flex" },
+          }}
+          component={HomeScreen}
+        />
+        <Drawer.Screen
           name="DriverHome"
           options={{
             title: "Conductor",
@@ -54,14 +62,6 @@ export const Router = () => {
         />
 
         <Drawer.Screen
-          name="Home"
-          options={{
-            title: "AquaCabo",
-            drawerItemStyle: { display: isDriver ? "none" : "flex" },
-          }}
-          component={HomeScreen}
-        />
-        <Drawer.Screen
           name="Orders"
           options={{
             title: "Pedidos",
@@ -69,7 +69,6 @@ export const Router = () => {
           }}
           component={OrdersScreen}
         />
-    
 
         <Drawer.Group screenOptions={{ presentation: "modal" }}>
           <Drawer.Screen
@@ -81,7 +80,6 @@ export const Router = () => {
             }}
             component={DriverLoginScreen}
           />
-          <Drawer.Screen name="notifications" component={NotificationsScreen} />
           <Drawer.Screen
             name="login"
             options={{
@@ -101,7 +99,6 @@ export const Router = () => {
             component={SignUpScreen}
           />
 
-          
           <Drawer.Screen
             name="SignUpDriver"
             options={{
@@ -111,8 +108,6 @@ export const Router = () => {
             }}
             component={SignUpDriverScreen}
           />
-
-
         </Drawer.Group>
       </Drawer.Navigator>
     </NavigationContainer>

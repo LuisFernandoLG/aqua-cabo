@@ -101,6 +101,7 @@ export const ModalX = ({
                 <Text style={styles.textStyle}>Rechazar</Text>
               </Pressable>
             </FlexContainer>
+            <Text>Cantidad: {request.waterQuantity}L</Text>
           </View>
         </View>
       </Modal>

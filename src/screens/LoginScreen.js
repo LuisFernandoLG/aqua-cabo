@@ -2,7 +2,14 @@ import { useNavigation } from "@react-navigation/native";
 import { Button } from "@rneui/base";
 import { Image, Input, Text } from "@rneui/themed";
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
+import {
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { FlexContainer } from "../components/FlexContainer";
 import { useAuth } from "../hooks/useAuth";
 import { api } from "../services/api";
@@ -48,66 +55,68 @@ export const LoginScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      {/* <Button title={"HOli"} onPress={() => alert("Holi")} /> */}
-      {/* <TouchableWithoutFeedback onPress={Keyboard.dismiss}> */}
-      <View style={styles.inner}>
-        <FlexContainer flex_jc_c flex_ai_c pdHorizontal={50}>
-          <View style={styles.logoContainer}>
-            <Image
-              style={styles.logo}
-              source={require("../../assets/logo.png")}
+    <ScrollView>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
+        {/* <Button title={"HOli"} onPress={() => alert("Holi")} /> */}
+        {/* <TouchableWithoutFeedback onPress={Keyboard.dismiss}> */}
+        <View style={styles.inner}>
+          <FlexContainer flex_jc_c flex_ai_c pdHorizontal={50}>
+            <View style={styles.logoContainer}>
+              <Image
+                style={styles.logo}
+                source={require("../../assets/logo.png")}
+              />
+            </View>
+            <FlexContainer mVertical={20} flex_jc_c flex_ai_c>
+              <Text h3>Bienvenido</Text>
+              <Text>Ingresa con tu cuenta de cliente</Text>
+            </FlexContainer>
+            <Input
+              keyboardType="email-address"
+              placeholder="Correo"
+              value={email}
+              onChangeText={(value) => setEmail(value)}
             />
-          </View>
-          <FlexContainer mVertical={20} flex_jc_c flex_ai_c>
-            <Text h3>Bienvenido</Text>
-            <Text>Ingresa con tu cuenta de cliente</Text>
-          </FlexContainer>
-          <Input
-            keyboardType="email-address"
-            placeholder="Correo"
-            value={email}
-            onChangeText={(value) => setEmail(value)}
-          />
 
-          <Input
-          secureTextEntry={true}
-            placeholder="Contraseña"
-            value={password}
-            onChangeText={(value) => setPassword(value)}
-          />
-          <FlexContainer>
-            <Text style={styles.errorMsg}>{errors || ""}</Text>
-          </FlexContainer>
+            <Input
+              secureTextEntry={true}
+              placeholder="Contraseña"
+              value={password}
+              onChangeText={(value) => setPassword(value)}
+            />
+            <FlexContainer>
+              <Text style={styles.errorMsg}>{errors || ""}</Text>
+            </FlexContainer>
 
-          <FlexContainer flex_jc_c>
-            <Button
-              title="Iniciar sesión"
-              onPress={login}
-              loading={isLoading}
-              isLoading={isLoading}
-            />
-            <Button
-              title="Registrarse"
-              titleStyle={{ color: "black" }}
-              onPress={goToSignUpScreen}
-              buttonStyle={{ backgroundColor: "rgba(244, 244, 244, 1)" }}
-              containerStyle={styles.middleBtn}
-            />
-            <Button
-              title="Soy conductor"
-              type="clear"
-              onPress={goToLoginDriverScreen}
-              containerStyle={styles.middleBtn}
-            />
+            <FlexContainer flex_jc_c>
+              <Button
+                title="Iniciar sesión"
+                onPress={login}
+                loading={isLoading}
+                isLoading={isLoading}
+              />
+              <Button
+                title="Registrarse"
+                titleStyle={{ color: "black" }}
+                onPress={goToSignUpScreen}
+                buttonStyle={{ backgroundColor: "rgba(244, 244, 244, 1)" }}
+                containerStyle={styles.middleBtn}
+              />
+              <Button
+                title="Soy conductor"
+                type="clear"
+                onPress={goToLoginDriverScreen}
+                containerStyle={styles.middleBtn}
+              />
+            </FlexContainer>
           </FlexContainer>
-        </FlexContainer>
-      </View>
-      {/* </TouchableWitmehoutFeedback> */}
-    </KeyboardAvoidingView>
+        </View>
+        {/* </TouchableWitmehoutFeedback> */}
+      </KeyboardAvoidingView>
+    </ScrollView>
   );
 };
 
@@ -122,10 +131,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   container: {
-    // borderWidth:2,
-    // borderColor:"red",
-    flex: 1,
-    justifyContent: "center",
+    width: Dimensions.get("window").width,
+    paddingHorizontal: 20,
+
+    marginTop: 10,
+    borderWidth: 2,
   },
   inner: {
     marginBottom: Platform.OS === "ios" ? 0 : 80,

@@ -13,11 +13,10 @@ export const RequestSheetContent = ({
   const inputRef = useRef(null);
 
   const handleOnClick = () => {
-    console.log("Primero");
-    sleep(3000).then(() => {
-      console.log("despues de 3");
-      setSheetSectionToWaiting(ltValue);
-    });
+    if (ltValue) setSheetSectionToWaiting(ltValue);
+    else {
+      alert("Por favor ingresa una cantidad");
+    }
   };
 
   return (
