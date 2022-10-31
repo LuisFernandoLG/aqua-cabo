@@ -27,10 +27,8 @@ export const Router = () => {
     },
   };
 
-
-
-
   const isDriver = user?.type === "DRIVER";
+  const isClient = user?.type === "CLIENT";
 
   return (
     <NavigationContainer theme={MyTheme}>
@@ -56,22 +54,42 @@ export const Router = () => {
           }}
           component={LoginScreen}
         />
-        <Drawer.Screen
-          name="Home"
-          options={{
-            title: "AquaCabo",
-            drawerItemStyle: { display: isDriver ? "none" : "flex" },
-          }}
-          component={HomeScreen}
-        />
-        <Drawer.Screen
-          name="DriverHome"
-          options={{
-            title: "Conductor",
-            drawerItemStyle: { display: isDriver ? "flex" : "none" },
-          }}
-          component={DriverHomeScreen}
-        />
+
+        {isDriver && (
+          <>
+            <Drawer.Screen
+              name="DriverHome"
+              options={{
+                title: "Conductor",
+                drawerItemStyle: { display: isDriver ? "flex" : "none" },
+              }}
+              component={DriverHomeScreen}
+            />
+          </>
+        )}
+
+        {isClient && (
+          <>
+            <Drawer.Screen
+              name="Home"
+              options={{
+                title: "AquaCabo",
+                drawerItemStyle: { display: isDriver ? "none" : "flex" },
+              }}
+              component={HomeScreen}
+            />
+
+            <Drawer.Screen
+              name="Orders"
+              options={{
+                title: "Pedidos",
+                drawerItemStyle: { display: isDriver ? "none" : "flex" },
+              }}
+              component={OrdersScreen}
+            />
+          </>
+        )}
+
         <Drawer.Screen
           name="Profile"
           options={{ title: "Perfil" }}
@@ -81,15 +99,6 @@ export const Router = () => {
           name="About"
           options={{ title: "Acerca de" }}
           component={AboutScreen}
-        />
-
-        <Drawer.Screen
-          name="Orders"
-          options={{
-            title: "Pedidos",
-            drawerItemStyle: { display: isDriver ? "none" : "flex" },
-          }}
-          component={OrdersScreen}
         />
 
         <Drawer.Screen

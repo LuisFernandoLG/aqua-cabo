@@ -175,7 +175,7 @@ export const DriverHomeScreen = ({ navigation }) => {
 
   return (
     <View>
-      {userLocation && requestsByClients.length > 0 && (
+      {userLocation && requestsByClients.length > 0 && currentClientDestination && (
         <ModalX
           driverCoords={userLocation}
           clientCoords={requestsByClients[0].clientCoords}
@@ -197,7 +197,7 @@ export const DriverHomeScreen = ({ navigation }) => {
         onUserLocationChange={updateUserLocation}
         userLocationUpdateInterval={5000}
       >
-        {userLocation && currentClientDestination && (
+        {userLocation && currentClientDestination &&  (
           <>
             <MapViewDirections
               strokeWidth={3}

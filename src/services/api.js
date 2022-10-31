@@ -145,7 +145,11 @@ export const api = () => {
         const data = snapshot.val();
         const array = Object.values(data);
         const requestFound = array.find((item) => item.clientId === clientId);
-        cb(requestFound);
+        if (requestFound) {
+          cb(requestFound);
+        } else {
+          cb([]);
+        }
       } else {
         cb([]);
       }
