@@ -23,6 +23,11 @@ export const LoginScreen = () => {
   const { isLogged, login: loginLocally, user } = useAuth();
   const navigation = useNavigation();
 
+  useEffect(() => {
+    if (isLogged || user?.type === "DRIVER") navigation.navigate("DriverHome");
+    if (isLogged || user?.type === "CLIENT") navigation.navigate("Home");
+  }, [isLogged, user]);
+
   const goToSignUpScreen = () => {
     navigation.navigate("SignUp");
   };
@@ -30,10 +35,6 @@ export const LoginScreen = () => {
   const goToLoginDriverScreen = () => {
     navigation.navigate("DriverLogin");
   };
-
-  useEffect(() => {
-    if (isLogged && user.type === "CLIENT") navigation.navigate("Home");
-  }, [isLogged]);
 
   const login = async () => {
     setErrors("");
@@ -135,7 +136,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
 
     marginTop: 10,
-    borderWidth: 2,
   },
   inner: {
     marginBottom: Platform.OS === "ios" ? 0 : 80,

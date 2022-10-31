@@ -13,10 +13,11 @@ import { CustomDrawerContent } from "./CustomDrawer";
 import { DefaultTheme } from "@react-navigation/native";
 import { HomeScreen } from "../screens/HomeScreen";
 import { SignUpDriverScreen } from "../screens/SignUpDriverScreen";
+import { useEffect } from "react";
 
 export const Router = () => {
   const Drawer = createDrawerNavigator();
-  const { user } = useAuth();
+  const { user, isLogged } = useAuth();
 
   const MyTheme = {
     ...DefaultTheme,
@@ -26,6 +27,9 @@ export const Router = () => {
     },
   };
 
+
+
+
   const isDriver = user?.type === "DRIVER";
 
   return (
@@ -34,6 +38,24 @@ export const Router = () => {
         initialRouteName="login"
         drawerContent={(props) => <CustomDrawerContent {...props} />}
       >
+        <Drawer.Screen
+          name="DriverLogin"
+          options={{
+            drawerItemStyle: { display: "none" },
+            headerShown: false,
+            swipeEdgeWidth: 0,
+          }}
+          component={DriverLoginScreen}
+        />
+        <Drawer.Screen
+          name="login"
+          options={{
+            drawerItemStyle: { display: "none" },
+            headerShown: false,
+            swipeEdgeWidth: 0,
+          }}
+          component={LoginScreen}
+        />
         <Drawer.Screen
           name="Home"
           options={{
@@ -70,45 +92,25 @@ export const Router = () => {
           component={OrdersScreen}
         />
 
-        <Drawer.Group screenOptions={{ presentation: "modal" }}>
-          <Drawer.Screen
-            name="DriverLogin"
-            options={{
-              drawerItemStyle: { display: "none" },
-              headerShown: false,
-              swipeEdgeWidth: 0,
-            }}
-            component={DriverLoginScreen}
-          />
-          <Drawer.Screen
-            name="login"
-            options={{
-              drawerItemStyle: { display: "none" },
-              headerShown: false,
-              swipeEdgeWidth: 0,
-            }}
-            component={LoginScreen}
-          />
-          <Drawer.Screen
-            name="SignUp"
-            options={{
-              drawerItemStyle: { display: "none" },
-              headerShown: false,
-              swipeEdgeWidth: 0,
-            }}
-            component={SignUpScreen}
-          />
+        <Drawer.Screen
+          name="SignUp"
+          options={{
+            drawerItemStyle: { display: "none" },
+            headerShown: false,
+            swipeEdgeWidth: 0,
+          }}
+          component={SignUpScreen}
+        />
 
-          <Drawer.Screen
-            name="SignUpDriver"
-            options={{
-              drawerItemStyle: { display: "none" },
-              headerShown: false,
-              swipeEdgeWidth: 0,
-            }}
-            component={SignUpDriverScreen}
-          />
-        </Drawer.Group>
+        <Drawer.Screen
+          name="SignUpDriver"
+          options={{
+            drawerItemStyle: { display: "none" },
+            headerShown: false,
+            swipeEdgeWidth: 0,
+          }}
+          component={SignUpDriverScreen}
+        />
       </Drawer.Navigator>
     </NavigationContainer>
   );

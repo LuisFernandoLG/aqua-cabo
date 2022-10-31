@@ -25,8 +25,9 @@ export const DriverLoginScreen = () => {
   const navigation = useNavigation();
 
   useEffect(() => {
-    if (isLogged && user.type === "DRIVER") navigation.navigate("DriverHome");
-  }, [isLogged]);
+    if (isLogged || user?.type === "DRIVER") navigation.navigate("DriverHome");
+    if (isLogged || user?.type === "CLIENT") navigation.navigate("Home");
+  }, [isLogged, user]);
 
   const login = async () => {
     setErrors("");
@@ -126,7 +127,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     // flex: 1,
     marginTop: 10,
-    borderWidth: 2,
   },
   inner: {
     marginBottom: Platform.OS === "ios" ? 0 : 80,
