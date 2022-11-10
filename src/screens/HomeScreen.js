@@ -49,15 +49,18 @@ const clientRequests = {
   WAITING: 3,
 };
 
+
+
+
+const initialTrucks = []
+const initialUserLocation = {}
+
 export const HomeScreen = ({ navigation }) => {
   const [region, setRegion] = useState(initialRegion);
-  const [marker, setMarker] = useState(initialMarker);
-  const [trucks, setTrucks] = useState([]);
-  const [userLocation, setUserLocation] = useState({});
-  const [destination, setDestination] = useState(null);
+  const [trucks, setTrucks] = useState(initialTrucks);
+  const [userLocation, setUserLocation] = useState(initialUserLocation);
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
-  const [requestAccepted, setRequestAccepted] = useState(null);
   const [truckRequestAccepted, setTruckRequestAccepted] = useState(null);
   const [currentRequest, setCurrentRequest] = useState(null);
   const [expectedTime, setExpectedTime] = useState(0);
@@ -71,6 +74,8 @@ export const HomeScreen = ({ navigation }) => {
 
   const isFocused = useIsFocused();
   let mapRef = useRef(null);
+
+  
 
   // Un screen no llama a su clenup después de que se cambia de pantalla, por lo que el ciclo de vida normal de un componente en react native cambia un poco con esta clase de componentes
   // A su vez, la documentación recomienda usar el hooj useIsFocussed para sabre si está siendo mostrada la patanlla o no

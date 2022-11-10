@@ -41,6 +41,8 @@ export const ModalX = ({
     return getRegionForCoordinates(points);
   };
 
+  const handleNotTaken = ()=> {}
+
   return (
     <View style={styles.centeredView}>
       <Modal
@@ -97,7 +99,7 @@ export const ModalX = ({
 
               <Pressable
                 style={[styles.button, styles.buttonClose]}
-                onPress={() => handleAnswer(answers.NO)}
+                onPress={handleNotTaken}
               >
                 <Text style={styles.textStyle}>Rechazar</Text>
               </Pressable>

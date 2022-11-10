@@ -155,10 +155,13 @@ export const DriverHomeScreen = ({ navigation }) => {
     if (isFocused) setUserLocation(location);
   };
 
-  const setRequesToTaken = (requestId) => {
-    api().changeRequestStatus({ requestId, newStatus: "TAKEN" }, (status) => {
-      setCurrentClientDestination({ ...currentClientDestination, status });
-    });
+  const setRequesToTaken = async (requestId) => {
+    await api().changeRequestStatus(
+      { requestId, newStatus: "TAKEN" },
+      (status) => {
+        setCurrentClientDestination({ ...currentClientDestination, status });
+      }
+    );
   };
 
   const setAlreadyArrived = () => {
@@ -194,18 +197,20 @@ export const DriverHomeScreen = ({ navigation }) => {
 
   return (
     <View>
-      {userLocation && requestsByClients.length > 0 && currentClientDestination && (
-        <ModalX
-          driverCoords={userLocation}
-          clientCoords={requestsByClients[0].clientCoords}
-          request={requestsByClients[0]}
-          isOpen={isOpen}
-          closeModal={closeModal}
-          setRequesToTaken={() =>
-            setRequesToTaken(requestsByClients[0].clientId)
-          }
-        />
-      )}
+      {userLocation &&
+        requestsByClients.length > 0 &&
+        currentClientDestination?.status === sectionList.PENDING && currentClientDestination && (
+          <ModalX
+            driverCoords={userLocation}
+            clientCoords={requestsByClients[0].clientCoords}
+            request={requestsByClients[0]}
+            isOpen={isOpen}
+            closeModal={closeModal}
+            setRequesToTaken={() =>
+              setRequesToTaken(requestsByClients[0].clientId)
+            }
+          />
+        )}
 
       {/* Mapa principal -------------------------- */}
       <MapView
@@ -269,7 +274,7 @@ export const DriverHomeScreen = ({ navigation }) => {
               {currentClientDestination.status === sectionList.PENDING && (
                 <>
                   <Text style={{ textAlign: "center" }} h4>
-                    En proceso
+                    En proceso de decisión
                   </Text>
                 </>
               )}

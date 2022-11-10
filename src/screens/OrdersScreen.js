@@ -7,6 +7,7 @@ import { FlexContainer } from "../components/FlexContainer.jsx";
 import { api } from "../services/api.js";
 import {useAuth} from "../hooks/useAuth"
 import { formatTimestamp } from "../utils/formatTimestamp.js";
+import { useIsFocused } from "@react-navigation/native";
 
 const initialOrders = [];
 
@@ -14,12 +15,16 @@ export const OrdersScreen = () => {
   const [orders, setOrders] = useState(initialOrders);
 
   const {user}= useAuth()
+  const isFocused = useIsFocused();
+
+
+
 
   useEffect(() => {
     api().getDoneRequestByUser({clientId:user.id}).then((data)=>{
       setOrders(data)
     })
-  }, []);
+  }, [isFocused]);
 
   return (
     <FlexContainer>
