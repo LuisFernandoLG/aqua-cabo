@@ -1,6 +1,9 @@
 import { StyleSheet, View } from "react-native";
 import BottomSheet from "react-native-simple-bottom-sheet";
-import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, {
+  Marker,
+  PROVIDER_GOOGLE,
+} from "react-native-maps";
 import { useEffect, useRef, useState } from "react";
 import { Button, Text } from "@rneui/themed";
 import { useAuth } from "../hooks/useAuth";
@@ -50,30 +53,28 @@ export const DriverHomeScreen = ({ navigation }) => {
   const { openModal, closeModal, isOpen } = useMapModal();
   const [currentClientDestination, setCurrentClientDestination] =
     useState(null);
-    const [currentRegion, setCurrentRegion] = useState(initialRegion);
+  const [currentRegion, setCurrentRegion] = useState(initialRegion);
 
   const [waterToFill, setWaterToFill] = useState(0);
   const [waterFilled, setWaterToFilled] = useState(0);
   const [loading, setLoading] = useState(false);
   const [isConnected, setIsConnected] = useState("I don't know");
-
-
+  const mapRef = useRef(null);
 
   useEffect(() => {
     if (isFocused) {
       api().suscribeToAmIConnected((isConnected) => {
-        if(isConnected){
-          api().setOfflineOnDisconnect({driverId:123})
-          setIsConnected("sí conectado")
-        } else{
-          setIsConnected("No conectado")
+        if (isConnected) {
+          api().setOfflineOnDisconnect({ driverId: 123 });
+          setIsConnected("sí conectado");
+        } else {
+          setIsConnected("No conectado");
         }
       });
-    }else{
+    } else {
       // api().unsuscribeOfAllListener()
     }
   }, [isFocused]);
-
 
   useEffect(() => {
     if (requestsAccepted.length > 0 && userLocation) {
@@ -81,8 +82,10 @@ export const DriverHomeScreen = ({ navigation }) => {
       const r = formatCurretRegion(requestsAccepted[0]);
       setWaterToFill(requestsAccepted[0].waterQuantity);
 
+      console.log({ r });
       setCurrentRegion(r);
     }
+    console.log("cambió la ubi");
   }, [userLocation]);
 
   const formatCurretRegion = (dest) => {
@@ -118,10 +121,15 @@ export const DriverHomeScreen = ({ navigation }) => {
     });
   };
 
+  const animateToRegion = (destTegion, miliseconds) => {
+    if (mapRef) mapRef.current.animateToRegion(destTegion, miliseconds);
+  };
+
   useEffect(() => {
     if (userLocation) {
       console.log("ENVIANDO. . ... . .. . . .");
-      sendCurrentLocationToDb();
+      console.log({userLocation})
+      animateToRegion(userLocation, 1000);
     }
   }, [userLocation]);
 
@@ -150,6 +158,7 @@ export const DriverHomeScreen = ({ navigation }) => {
   }, []);
 
   const updateUserLocation = (event) => {
+    console.log("actualizando desde updateUserLocation")
     if (!event?.nativeEvent?.coordinate) return false;
     const location = event.nativeEvent.coordinate;
     if (isFocused) setUserLocation(location);
@@ -195,11 +204,18 @@ export const DriverHomeScreen = ({ navigation }) => {
     }
   }, [waterFilled]);
 
+  console.log("renderizando HOME sendDriverCoordsToDb");
+
+  useEffect(()=>{
+    if(isFocused) animateToRegion(userLocation, 2000)
+  },[isFocused])
+
   return (
     <View>
       {userLocation &&
         requestsByClients.length > 0 &&
-        currentClientDestination?.status === sectionList.PENDING && currentClientDestination && (
+        currentClientDestination?.status === sectionList.PENDING &&
+        currentClientDestination && (
           <ModalX
             driverCoords={userLocation}
             clientCoords={requestsByClients[0].clientCoords}
@@ -214,15 +230,16 @@ export const DriverHomeScreen = ({ navigation }) => {
 
       {/* Mapa principal -------------------------- */}
       <MapView
-        style={styles.map}
-        initialRegion={initialRegion}
-        region={currentRegion}
+        initialRegion={userLocation || initialRegion}
         showsUserLocation={true}
         onUserLocationChange={updateUserLocation}
         userLocationUpdateInterval={5000}
+        userLocationFastestInterval={5000}
         provider={PROVIDER_GOOGLE}
+        ref={mapRef}
+        style={styles.map}
       >
-        {userLocation && currentClientDestination &&  (
+        {userLocation && currentClientDestination && (
           <>
             <MapViewDirections
               strokeWidth={3}
