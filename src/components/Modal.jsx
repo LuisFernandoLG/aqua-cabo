@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Alert, Modal, StyleSheet, Text, Pressable, View } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { FlexContainer } from "./FlexContainer";
 import { GOOGLE_MAPS_APIKEY } from "@env";
 import MapViewDirections from "react-native-maps-directions";
@@ -57,6 +57,7 @@ export const ModalX = ({
             <MapView
               style={styles.miniMap}
               showsUserLocation
+              provider={PROVIDER_GOOGLE}
               region={{
                 longitude: getRegion().longitude,
                 latitude: getRegion().latitude,

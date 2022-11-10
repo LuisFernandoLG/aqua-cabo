@@ -1,6 +1,6 @@
 import { StyleSheet, View } from "react-native";
 import BottomSheet from "react-native-simple-bottom-sheet";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from "react-native-maps";
 import { useEffect, useRef, useState } from "react";
 import { Button, Text } from "@rneui/themed";
 import { useAuth } from "../hooks/useAuth";
@@ -50,11 +50,29 @@ export const DriverHomeScreen = ({ navigation }) => {
   const { openModal, closeModal, isOpen } = useMapModal();
   const [currentClientDestination, setCurrentClientDestination] =
     useState(null);
-  const [currentRegion, setCurrentRegion] = useState(initialRegion);
+    const [currentRegion, setCurrentRegion] = useState(initialRegion);
 
   const [waterToFill, setWaterToFill] = useState(0);
   const [waterFilled, setWaterToFilled] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [isConnected, setIsConnected] = useState("I don't know");
+
+
+
+  useEffect(() => {
+    if (isFocused) {
+      api().suscribeToAmIConnected((isConnected) => {
+        if(isConnected){
+          api().setOfflineOnDisconnect({driverId:123})
+          setIsConnected("sí conectado")
+        } else{
+          setIsConnected("No conectado")
+
+        }
+      });
+    }
+  }, [isFocused]);
+
 
   useEffect(() => {
     if (requestsAccepted.length > 0 && userLocation) {
@@ -196,6 +214,7 @@ export const DriverHomeScreen = ({ navigation }) => {
         showsUserLocation={true}
         onUserLocationChange={updateUserLocation}
         userLocationUpdateInterval={5000}
+        provider={PROVIDER_GOOGLE}
       >
         {userLocation && currentClientDestination &&  (
           <>
@@ -230,6 +249,7 @@ export const DriverHomeScreen = ({ navigation }) => {
         style={styles.container}
       >
         <BottomSheet ref={(ref) => (panelRef.current = ref)}>
+          <Text>{isConnected}</Text>
           {!currentClientDestination && (
             <>
               <Text style={{ textAlign: "center" }} h4>

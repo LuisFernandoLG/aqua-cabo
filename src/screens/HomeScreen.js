@@ -1,7 +1,7 @@
 import { KeyboardAvoidingView, StyleSheet, View } from "react-native";
 import BottomSheet from "react-native-simple-bottom-sheet";
 
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { FlexContainer } from "../components/FlexContainer";
 import { useEffect, useRef, useState } from "react";
 import { RequestSheetContent } from "../components/userBottomSheetsClient/RequestSheetContent";
@@ -62,6 +62,7 @@ export const HomeScreen = ({ navigation }) => {
   const [currentRequest, setCurrentRequest] = useState(null);
   const [expectedTime, setExpectedTime] = useState(0);
   const [expectedDistance, setExpectedDistance] = useState(0);
+  const [isConnected, setIsConnected] = useState("I don't know");
 
   const panelRef = useRef(null);
   const [clientRequestSectionNum, setClientRequestSectionNum] = useState(
@@ -73,6 +74,14 @@ export const HomeScreen = ({ navigation }) => {
 
   // Un screen no llama a su clenup después de que se cambia de pantalla, por lo que el ciclo de vida normal de un componente en react native cambia un poco con esta clase de componentes
   // A su vez, la documentación recomienda usar el hooj useIsFocussed para sabre si está siendo mostrada la patanlla o no
+
+  useEffect(() => {
+    if (isFocused) {
+      api().suscribeToAmIConnected((info) => {
+        setIsConnected(info);
+      });
+    }
+  }, [isFocused]);
 
   useEffect(() => {
     api().suscribeToWatchTruckLocations((array) => {
@@ -153,7 +162,7 @@ export const HomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     if (userLocation) {
-      console.log("mandando ubicacionc")
+      console.log("mandando ubicacionc");
       api().sendClientCoordsToDb({
         cliendId: user.id,
         newCoords: userLocation,
@@ -179,6 +188,7 @@ export const HomeScreen = ({ navigation }) => {
         // ref={mapRef}
         // onRegionChange={(region) => setRegion(region)}
         // region={region}
+        provider={PROVIDER_GOOGLE}
         showsUserLocation={true}
         userLocationUpdateInterval={15000}
         onUserLocationChange={updateUserLocation}
@@ -220,70 +230,71 @@ export const HomeScreen = ({ navigation }) => {
       </MapView>
 
       {/* <ScrollView> */}
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
-          <BottomSheet ref={(ref) => (panelRef.current = ref)}>
-            <FlexContainer pdBottom={50}>
-              {!currentRequest ? (
-                <>
-                  <RequestSheetContent
-                    setSheetSectionToWaiting={requestWater}
-                    isLoading={isLoading}
-                  />
-                </>
-              ) : (
-                <>
-                  {currentRequest.status === sectionList.PENDING && (
-                    <>
-                      <Text style={{ textAlign: "center", marginBottom: 5 }} h4>
-                        Buscando pipa
-                      </Text>
-                      <FlexContainer flex_ai_c>
-                        <Button title="Solicitar pedido" loading={isLoading} />
-                      </FlexContainer>
-                    </>
-                  )}
-
-                  {currentRequest.status === sectionList.TAKEN && (
-                    <WaitingSheetContent
-                      currentRequest={currentRequest}
-                      expectedDistance={expectedDistance}
-                      expectedTime={expectedTime}
-                    />
-                  )}
-
-                  {currentRequest.status === sectionList.ARRIVED && (
-                    <>
-                      <Text style={{ textAlign: "center" }} h4>
-                        El camión ha llegado
-                      </Text>
-                      <Text style={{ textAlign: "center" }} h5>
-                        Prepara tus contenedores
-                      </Text>
-                    </>
-                  )}
-
-                  {currentRequest.status === sectionList.CHARGING && (
-                    <>
-                      <Text style={{ textAlign: "center" }} h4>
-                        Por favor pague al chofer
-                      </Text>
-                      <Text style={{ textAlign: "center" }} h4>
-                        $200
-                      </Text>
-                    </>
-                  )}
-                </>
-              )}
-            </FlexContainer>
-            {Platform.OS === "ios" ? (
-              <View style={{ marginBottom: 40 }}></View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <BottomSheet ref={(ref) => (panelRef.current = ref)}>
+          <Text>{isConnected}</Text>
+          <FlexContainer pdBottom={50}>
+            {!currentRequest ? (
+              <>
+                <RequestSheetContent
+                  setSheetSectionToWaiting={requestWater}
+                  isLoading={isLoading}
+                />
+              </>
             ) : (
-              <View style={{ marginBottom: 20 }}></View>
+              <>
+                {currentRequest.status === sectionList.PENDING && (
+                  <>
+                    <Text style={{ textAlign: "center", marginBottom: 5 }} h4>
+                      Buscando pipa
+                    </Text>
+                    <FlexContainer flex_ai_c>
+                      <Button title="Solicitar pedido" loading={isLoading} />
+                    </FlexContainer>
+                  </>
+                )}
+
+                {currentRequest.status === sectionList.TAKEN && (
+                  <WaitingSheetContent
+                    currentRequest={currentRequest}
+                    expectedDistance={expectedDistance}
+                    expectedTime={expectedTime}
+                  />
+                )}
+
+                {currentRequest.status === sectionList.ARRIVED && (
+                  <>
+                    <Text style={{ textAlign: "center" }} h4>
+                      El camión ha llegado
+                    </Text>
+                    <Text style={{ textAlign: "center" }} h5>
+                      Prepara tus contenedores
+                    </Text>
+                  </>
+                )}
+
+                {currentRequest.status === sectionList.CHARGING && (
+                  <>
+                    <Text style={{ textAlign: "center" }} h4>
+                      Por favor pague al chofer
+                    </Text>
+                    <Text style={{ textAlign: "center" }} h4>
+                      $200
+                    </Text>
+                  </>
+                )}
+              </>
             )}
-          </BottomSheet>
-        </KeyboardAvoidingView>
+          </FlexContainer>
+          {Platform.OS === "ios" ? (
+            <View style={{ marginBottom: 40 }}></View>
+          ) : (
+            <View style={{ marginBottom: 20 }}></View>
+          )}
+        </BottomSheet>
+      </KeyboardAvoidingView>
       {/* </ScrollView> */}
     </View>
   );

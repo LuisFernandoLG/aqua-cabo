@@ -1,7 +1,14 @@
-// import firebase from "../../database/firebase";
 import { manhattanDistance } from "../helpers/manhattanDistance";
 import { db, auth } from "../../database/firebase2";
-import { set, ref, push, get, onValue, remove } from "firebase/database";
+import {
+  set,
+  ref,
+  push,
+  get,
+  onValue,
+  remove,
+  onDisconnect,
+} from "firebase/database";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -229,6 +236,23 @@ export const api = () => {
         });
     });
 
+  const setOfflineOnDisconnect = ({ driverId }) => {
+    const presenceRef = ref(db, "disconnectmessage");
+    const x = getRandomInt(10);
+    onDisconnect(presenceRef).set(`Me desconecté ${x}`);
+  };
+
+  const suscribeToAmIConnected = (cb) => {
+    const connectedRef = ref(db, ".info/connected");
+    onValue(connectedRef, (snap) => {
+      if (snap.val() === true) {
+        cb(true);
+      } else {
+        cb(false);
+      }
+    });
+  };
+
   return {
     sendDriverCoordsToDb,
     registerClient,
@@ -243,10 +267,15 @@ export const api = () => {
     removeClientRequest,
     saveClientRequest,
     getDoneRequestByUser,
+    setOfflineOnDisconnect,
+    suscribeToAmIConnected
   };
 };
 
 // Functions part of api
+function getRandomInt(max) {
+  return Math.floor(Math.random() * max);
+}
 
 const orderByDistances = (array) => {
   return array.sort((a, b) => a.distance - b.distance);

@@ -18,14 +18,22 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "config": {
+        "googleMapsApiKey": "AIzaSyCGqE1J_395mxx00GvmP_-u7L5tAsqOmOI"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.luislopez.aquacaboapp"
+      "package": "com.luislopez.aquacaboapp",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCGqE1J_395mxx00GvmP_-u7L5tAsqOmOI"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
