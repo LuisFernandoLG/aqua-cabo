@@ -67,9 +67,10 @@ export const DriverHomeScreen = ({ navigation }) => {
           setIsConnected("sí conectado")
         } else{
           setIsConnected("No conectado")
-
         }
       });
+    }else{
+      // api().unsuscribeOfAllListener()
     }
   }, [isFocused]);
 

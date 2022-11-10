@@ -8,6 +8,7 @@ import {
   onValue,
   remove,
   onDisconnect,
+  off,
 } from "firebase/database";
 import {
   createUserWithEmailAndPassword,
@@ -15,6 +16,7 @@ import {
 } from "firebase/auth";
 
 export const api = () => {
+  let listeners = [];
   // It has a clean up
 
   const sendDriverCoordsToDb = async ({ driverId, newCoords }) => {
@@ -93,7 +95,7 @@ export const api = () => {
 
   const suscribeToWatchClientRequests = async ({ driverId }, cb) => {
     const clientRequestsRef = ref(db, "clientRequests");
-    onValue(clientRequestsRef, (snapshot) => {
+    const listenerReference = onValue(clientRequestsRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
         const array = Object.values(data);
@@ -103,11 +105,13 @@ export const api = () => {
         cb([]);
       }
     });
+
+    listeners.push(listenerReference);
   };
 
   const suscribeToWatchTruckLocations = async (cb) => {
     const truckLocationsRef = ref(db, "truckLocations");
-    onValue(truckLocationsRef, (snapshot) => {
+    const listenerRefernce = onValue(truckLocationsRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
         const array = Object.values(data);
@@ -116,6 +120,8 @@ export const api = () => {
         cb([]);
       }
     });
+
+    listeners.push(listenerRefernce);
   };
 
   const sendRequestToCloserDriver = async (
@@ -147,7 +153,7 @@ export const api = () => {
 
   const suscibeToRequestChanges = ({ clientId }, cb) => {
     const clientRequestsRef = ref(db, "clientRequests");
-    onValue(clientRequestsRef, (snapshot) => {
+    const listener = onValue(clientRequestsRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
         const array = Object.values(data);
@@ -161,7 +167,16 @@ export const api = () => {
         cb([]);
       }
     });
+
+    listeners.push(listener);
   };
+
+
+  const unsuscribeOfAllListener = ()=>{
+    listeners.forEach((listener)=>{
+      off(listener)
+    })
+  }
 
   const login = async ({ email, password }) =>
     new Promise((resolve, reject) => {
@@ -268,7 +283,8 @@ export const api = () => {
     saveClientRequest,
     getDoneRequestByUser,
     setOfflineOnDisconnect,
-    suscribeToAmIConnected
+    suscribeToAmIConnected,
+    unsuscribeOfAllListener,
   };
 };
 

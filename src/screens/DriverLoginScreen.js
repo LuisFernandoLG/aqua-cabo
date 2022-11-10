@@ -25,8 +25,8 @@ export const DriverLoginScreen = () => {
   const navigation = useNavigation();
 
   useEffect(() => {
-    if (isLogged || user?.type === "DRIVER") navigation.navigate("DriverHome");
-    if (isLogged || user?.type === "CLIENT") navigation.navigate("Home");
+    if (user?.type === "DRIVER") navigation.navigate("DriverHome");
+    if (user?.type === "CLIENT") navigation.navigate("Home");
   }, [isLogged, user]);
 
   const login = async () => {
