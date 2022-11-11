@@ -6,6 +6,7 @@ import Constants from "expo-constants";
 import { StatusBar } from "expo-status-bar";
 import * as Location from "expo-location";
 import { useEffect } from "react";
+import { NetInfoProvider } from "./src/contexts/NetInfoContext";
 
 export default function App() {
   const AsyncAlert = async () =>
@@ -29,7 +30,7 @@ export default function App() {
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== "granted") {
       setErrorMsg("Permission to access location was denied");
-      await AsyncAlert()
+      await AsyncAlert();
     }
 
     let location = await Location.getCurrentPositionAsync({});
@@ -42,10 +43,12 @@ export default function App() {
 
   return (
     <AuthProvider>
-      <StatusBar />
-      <View style={styles.container}>
-        <Router />
-      </View>
+      <NetInfoProvider>
+        <StatusBar />
+        <View style={styles.container}>
+          <Router />
+        </View>
+      </NetInfoProvider>
     </AuthProvider>
   );
 }

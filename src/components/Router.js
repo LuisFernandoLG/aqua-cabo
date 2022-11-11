@@ -5,7 +5,6 @@ import { AboutScreen } from "../screens/AboutScreen";
 import { DriverHomeScreen } from "../screens/DriverHomeScreen";
 import { DriverLoginScreen } from "../screens/DriverLoginScreen";
 import { LoginScreen } from "../screens/LoginScreen";
-import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { OrdersScreen } from "../screens/OrdersScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { SignUpScreen } from "../screens/SignUpScreen";
@@ -13,7 +12,6 @@ import { CustomDrawerContent } from "./CustomDrawer";
 import { DefaultTheme } from "@react-navigation/native";
 import { HomeScreen } from "../screens/HomeScreen";
 import { SignUpDriverScreen } from "../screens/SignUpDriverScreen";
-import { useEffect } from "react";
 
 export const Router = () => {
   const Drawer = createDrawerNavigator();
@@ -55,40 +53,32 @@ export const Router = () => {
           component={LoginScreen}
         />
 
-        {isDriver && (
-          <>
-            <Drawer.Screen
-              name="DriverHome"
-              options={{
-                title: "Conductor",
-                drawerItemStyle: { display: isDriver ? "flex" : "none" },
-              }}
-              component={DriverHomeScreen}
-            />
-          </>
-        )}
+        <Drawer.Screen
+          name="DriverHome"
+          options={{
+            title: "Conductor",
+            drawerItemStyle: { display: isDriver ? "flex" : "none" },
+          }}
+          component={DriverHomeScreen}
+        />
 
-        {isClient && (
-          <>
-            <Drawer.Screen
-              name="Home"
-              options={{
-                title: "AquaCabo",
-                drawerItemStyle: { display: isDriver ? "none" : "flex" },
-              }}
-              component={HomeScreen}
-            />
+        <Drawer.Screen
+          name="Home"
+          options={{
+            title: "AquaCabo",
+            drawerItemStyle: { display: isDriver ? "none" : "flex" },
+          }}
+          component={HomeScreen}
+        />
 
-            <Drawer.Screen
-              name="Orders"
-              options={{
-                title: "Pedidos",
-                drawerItemStyle: { display: isDriver ? "none" : "flex" },
-              }}
-              component={OrdersScreen}
-            />
-          </>
-        )}
+        <Drawer.Screen
+          name="Orders"
+          options={{
+            title: "Pedidos",
+            drawerItemStyle: { display: isDriver ? "none" : "flex" },
+          }}
+          component={OrdersScreen}
+        />
 
         <Drawer.Screen
           name="Profile"

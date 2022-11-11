@@ -9,6 +9,8 @@ import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import { Dimensions } from "react-native";
 import { ScrollView } from "react-native";
+import { useContext } from "react";
+import { netInfoContext } from "../contexts/NetInfoContext";
 
 const initialForm = {
   name: "Víctor",
@@ -30,6 +32,7 @@ export const SignUpScreen = () => {
   const [formErrors, setFormErrors] = useState(null);
   const [firebaseError, setFirebaseError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const { isConnected } = useContext(netInfoContext);
 
   const navigation = useNavigation();
   const { login: loginLocally } = useAuth();
@@ -73,7 +76,8 @@ export const SignUpScreen = () => {
         })
         .catch((e) => {
           console.log({ e });
-          setFirebaseError(firebaseErrors[e.errorCode]);
+          if (!isConnected) setFirebaseError("No hay conexión a internet");
+        else setFirebaseError(firebaseErrors[e.errorCode]);
         })
         .finally(() => {
           setLoading(false);

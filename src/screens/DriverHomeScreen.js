@@ -1,9 +1,6 @@
 import { StyleSheet, View } from "react-native";
 import BottomSheet from "react-native-simple-bottom-sheet";
-import MapView, {
-  Marker,
-  PROVIDER_GOOGLE,
-} from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { useEffect, useRef, useState } from "react";
 import { Button, Text } from "@rneui/themed";
 import { useAuth } from "../hooks/useAuth";
@@ -17,6 +14,9 @@ import { getRegionForCoordinates } from "../helpers/getRegionForCoordinates";
 import { FlexContainer } from "../components/FlexContainer";
 import { KeyboardAvoidingView } from "react-native";
 import { Platform } from "react-native";
+import { useContext } from "react";
+import { netInfoContext } from "../contexts/NetInfoContext";
+import { Icon } from "@rneui/base";
 
 const initialRegion = {
   latitude: 22.945646,
@@ -60,19 +60,21 @@ export const DriverHomeScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [isConnected, setIsConnected] = useState("I don't know");
   const mapRef = useRef(null);
+  const { isConnected: hasInternet } = useContext(netInfoContext);
 
   useEffect(() => {
     if (isFocused) {
-      api().suscribeToAmIConnected((isConnected) => {
-        if (isConnected) {
-          api().setOfflineOnDisconnect({ driverId: 123 });
+      api().suscribeToAmIConnected((_isConnected) => {
+        if (_isConnected) {
+          console.log("Asignando destructor");
+          api().setOfflineOnDisconnect({ driverId: user.id }, () => {});
           setIsConnected("sí conectado");
         } else {
           setIsConnected("No conectado");
         }
       });
     } else {
-      // api().unsuscribeOfAllListener()
+      
     }
   }, [isFocused]);
 
@@ -125,11 +127,15 @@ export const DriverHomeScreen = ({ navigation }) => {
     if (mapRef) mapRef.current.animateToRegion(destTegion, miliseconds);
   };
 
+  // CADA VEZ QUE LA UBUCACION CAMBIÉ
   useEffect(() => {
     if (userLocation) {
-      console.log("ENVIANDO. . ... . .. . . .");
-      console.log({userLocation})
-      animateToRegion(userLocation, 1000);
+      if (isFocused) {
+        console.log("ENVIANDO. . ... . .. . . .");
+        console.log({ userLocation });
+        // Update and animate to show between two points
+        sendCurrentLocationToDb();
+      }
     }
   }, [userLocation]);
 
@@ -158,10 +164,12 @@ export const DriverHomeScreen = ({ navigation }) => {
   }, []);
 
   const updateUserLocation = (event) => {
-    console.log("actualizando desde updateUserLocation")
-    if (!event?.nativeEvent?.coordinate) return false;
-    const location = event.nativeEvent.coordinate;
-    if (isFocused) setUserLocation(location);
+    if (isFocused) {
+      console.log("actualizando desde updateUserLocation");
+      if (!event?.nativeEvent?.coordinate) return false;
+      const location = event.nativeEvent.coordinate;
+      setUserLocation(location);
+    }
   };
 
   const setRequesToTaken = async (requestId) => {
@@ -206,9 +214,14 @@ export const DriverHomeScreen = ({ navigation }) => {
 
   console.log("renderizando HOME sendDriverCoordsToDb");
 
-  useEffect(()=>{
-    if(isFocused) animateToRegion(userLocation, 2000)
-  },[isFocused])
+  useEffect(() => {
+    if (isFocused && userLocation) {
+      animateToRegion(
+        { ...userLocation, latitudeDelta: 0.01, longitudeDelta: 0.0167 },
+        1000
+      );
+    }
+  }, [isFocused]);
 
   return (
     <View>
@@ -272,68 +285,77 @@ export const DriverHomeScreen = ({ navigation }) => {
         style={styles.container}
       >
         <BottomSheet ref={(ref) => (panelRef.current = ref)}>
-          <Text>{isConnected}</Text>
-          {!currentClientDestination && (
+          {hasInternet ? (
             <>
-              <Text style={{ textAlign: "center" }} h4>
-                Esperando por clientes
-              </Text>
-            </>
-          )}
-
-          {currentClientDestination && (
-            <>
-              {currentClientDestination.status ===
-                sectionList.WAITING_FOR_REQUESTS && (
-                <Text>Esperando por clientes</Text>
-              )}
-
-              {currentClientDestination.status === sectionList.PENDING && (
+              {!currentClientDestination && (
                 <>
                   <Text style={{ textAlign: "center" }} h4>
-                    En proceso de decisión
+                    Esperando por clientes
                   </Text>
                 </>
               )}
 
-              {currentClientDestination.status === sectionList.TAKEN && (
+              {currentClientDestination && (
                 <>
-                  <Text>Dirigete hacia la ubicación del cliente</Text>
-                  <Button title={"Llegué"} onPress={setAlreadyArrived} />
-                </>
-              )}
+                  {currentClientDestination.status ===
+                    sectionList.WAITING_FOR_REQUESTS && (
+                    <Text>Esperando por clientes</Text>
+                  )}
 
-              {currentClientDestination.status === sectionList.ARRIVED && (
-                <FlexContainer flex_ai_c>
-                  <Text h4>Llenar: {waterToFill} L</Text>
-                  <Text h5>Progreso: {waterFilled}L</Text>
-                  <Button
-                    containerStyle={{ minWidth: "50%", marginTop: 20 }}
-                    title={"Llenar"}
-                    onPress={fill}
-                  />
-                  <Button
-                    containerStyle={{ marginVertical: 10, minWidth: "50%" }}
-                    title={"llenar más"}
-                  />
-                  <Button
-                    containerStyle={{ minWidth: "50%" }}
-                    title={"Cobrar"}
-                    onPress={setCharging}
-                  />
-                </FlexContainer>
-              )}
+                  {currentClientDestination.status === sectionList.PENDING && (
+                    <>
+                      <Text style={{ textAlign: "center" }} h4>
+                        En proceso de decisión
+                      </Text>
+                    </>
+                  )}
 
-              {currentClientDestination.status === sectionList.CHARGING && (
-                <>
-                  <Text style={{ textAlign: "center" }} h4>
-                    Cobrar $200
-                  </Text>
-                  <Button title={"Hecho"} onPress={setRequestFinish} />
+                  {currentClientDestination.status === sectionList.TAKEN && (
+                    <>
+                      <Text>Dirigete hacia la ubicación del cliente</Text>
+                      <Button title={"Llegué"} onPress={setAlreadyArrived} />
+                    </>
+                  )}
+
+                  {currentClientDestination.status === sectionList.ARRIVED && (
+                    <FlexContainer flex_ai_c>
+                      <Text h4>Llenar: {waterToFill} L</Text>
+                      <Text h5>Progreso: {waterFilled}L</Text>
+                      <Button
+                        containerStyle={{ minWidth: "50%", marginTop: 20 }}
+                        title={"Llenar"}
+                        onPress={fill}
+                      />
+                      <Button
+                        containerStyle={{ marginVertical: 10, minWidth: "50%" }}
+                        title={"llenar más"}
+                      />
+                      <Button
+                        containerStyle={{ minWidth: "50%" }}
+                        title={"Cobrar"}
+                        onPress={setCharging}
+                      />
+                    </FlexContainer>
+                  )}
+
+                  {currentClientDestination.status === sectionList.CHARGING && (
+                    <>
+                      <Text style={{ textAlign: "center" }} h4>
+                        Cobrar $200
+                      </Text>
+                      <Button title={"Hecho"} onPress={setRequestFinish} />
+                    </>
+                  )}
                 </>
               )}
             </>
+          ) : (
+            <>
+              <Icon name="wifi-off" />
+              <Text style={styles.noInternet}>No hay conexión a internet</Text>
+            </>
           )}
+
           {Platform.OS === "ios" ? (
             <View style={{ marginBottom: 40 }}></View>
           ) : (
@@ -349,5 +371,9 @@ const styles = StyleSheet.create({
   map: {
     width: "100%",
     height: "100%",
+  },
+  noInternet: {
+    fontSize: 20,
+    textAlign: "center",
   },
 });

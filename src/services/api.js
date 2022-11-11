@@ -9,6 +9,7 @@ import {
   remove,
   onDisconnect,
   off,
+  serverTimestamp,
 } from "firebase/database";
 import {
   createUserWithEmailAndPassword,
@@ -24,12 +25,23 @@ export const api = () => {
       driverId: driverId,
       longitude: newCoords.longitude,
       latitude: newCoords.latitude,
+      isOnline: true,
+      lastStatus: serverTimestamp(),
     };
     try {
       set(ref(db, "truckLocations/" + driverId), truck);
     } catch (error) {
       console.log({ errorRR: error });
     }
+  };
+
+  const sendLastTimestamp = async ({ driverId }) => {
+    // console.log("timstamp--------------------")
+    // try {
+    //   await set(ref(db, "truckLocations/" + driverId + "/timstamp"), serverTimestamp());
+    // } catch (error) {
+    //   console.log({ errorRR: error });
+    // }
   };
 
   const sendClientCoordsToDb = async ({ cliendId, newCoords }) => {
@@ -171,12 +183,11 @@ export const api = () => {
     listeners.push(listener);
   };
 
-
-  const unsuscribeOfAllListener = ()=>{
-    listeners.forEach((listener)=>{
-      off(listener)
-    })
-  }
+  const unsuscribeOfAllListener = () => {
+    listeners.forEach((listener) => {
+      off(listener);
+    });
+  };
 
   const login = async ({ email, password }) =>
     new Promise((resolve, reject) => {
@@ -251,10 +262,16 @@ export const api = () => {
         });
     });
 
-  const setOfflineOnDisconnect = ({ driverId }) => {
-    const presenceRef = ref(db, "disconnectmessage");
-    const x = getRandomInt(10);
-    onDisconnect(presenceRef).set(`Me desconecté ${x}`);
+  const setOfflineOnDisconnect = async ({ driverId }, cb) => {
+    const presenceRef = ref(db, "truckLocations/" + driverId + "/isOnline");
+    const dis = onDisconnect(presenceRef);
+    await dis.set(false);
+    cb(dis);
+  };
+
+  const setOffline = async ({ driverId }) => {
+    const reff = ref(db, "truckLocations/" + driverId + "/isOnline");
+    set(reff, false);
   };
 
   const suscribeToAmIConnected = (cb) => {
@@ -285,6 +302,8 @@ export const api = () => {
     setOfflineOnDisconnect,
     suscribeToAmIConnected,
     unsuscribeOfAllListener,
+    sendLastTimestamp,
+    setOffline
   };
 };
 

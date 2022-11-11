@@ -14,15 +14,18 @@ import { useNavigation } from "@react-navigation/native";
 import { api } from "../services/api";
 import { ScrollView } from "react-native";
 import { Dimensions } from "react-native";
+import { useContext } from "react";
+import { netInfoContext } from "../contexts/NetInfoContext";
 
 export const DriverLoginScreen = () => {
-  const [email, setEmail] = useState("vicvvb@gmail.combebeb");
+  const [email, setEmail] = useState("vic@gmail.com");
   const [password, setPassword] = useState("1234567890");
   const [isLoading, setIsLoading] = useState(null);
   const [errors, setErrors] = useState(null);
 
   const { isLogged, login: loginLocally, user } = useAuth();
   const navigation = useNavigation();
+  const { isConnected } = useContext(netInfoContext);
 
   useEffect(() => {
     if (user?.type === "DRIVER") navigation.navigate("DriverHome");
@@ -41,7 +44,8 @@ export const DriverLoginScreen = () => {
         loginLocally({ user: authUser });
       })
       .catch(() => {
-        setErrors("Correo o contraseña incorrectos");
+        if (!isConnected) setErrors("No hay conexión a internet");
+        else setErrors("Correo o contraseña incorrectos");
       })
       .finally(() => {
         setIsLoading(false);

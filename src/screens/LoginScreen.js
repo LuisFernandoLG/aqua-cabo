@@ -1,6 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import { Button } from "@rneui/base";
 import { Image, Input, Text } from "@rneui/themed";
+import { useContext } from "react";
 import { useEffect, useState } from "react";
 import {
   Dimensions,
@@ -11,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { FlexContainer } from "../components/FlexContainer";
+import { netInfoContext } from "../contexts/NetInfoContext";
 import { useAuth } from "../hooks/useAuth";
 import { api } from "../services/api";
 
@@ -22,6 +24,7 @@ export const LoginScreen = () => {
 
   const { isLogged, login: loginLocally, user } = useAuth();
   const navigation = useNavigation();
+  const { isConnected } = useContext(netInfoContext);
 
   useEffect(() => {
     if (user?.type === "DRIVER") navigation.navigate("DriverHome");
@@ -48,7 +51,8 @@ export const LoginScreen = () => {
       })
       .catch((e) => {
         console.log({ e });
-        setErrors("Correo o contraseña incorrectos");
+        if (!isConnected) setErrors("No hay conexión a internet");
+        else setErrors("Correo o contraseña incorrectos");
       })
       .finally(() => {
         setIsLoading(false);
@@ -88,7 +92,7 @@ export const LoginScreen = () => {
               value={password}
               onChangeText={(value) => setPassword(value)}
             />
-            <FlexContainer>
+            <FlexContainer >
               <Text style={styles.errorMsg}>{errors || ""}</Text>
             </FlexContainer>
 
@@ -112,6 +116,7 @@ export const LoginScreen = () => {
                 onPress={goToLoginDriverScreen}
                 containerStyle={styles.middleBtn}
               />
+
             </FlexContainer>
           </FlexContainer>
         </View>
@@ -143,6 +148,8 @@ const styles = StyleSheet.create({
   },
   errorMsg: {
     color: "red",
+    marginBottom:10,
+
   },
   middleBtn: {
     marginVertical: 10,

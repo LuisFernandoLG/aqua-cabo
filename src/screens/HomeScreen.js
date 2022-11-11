@@ -15,7 +15,10 @@ import { useAuth } from "../hooks/useAuth";
 import { AvailableTruckGroup } from "../components/AvailableTruckGroup";
 import { Button, Text } from "@rneui/themed";
 import { Platform } from "react-native";
-import { ScrollView } from "react-native-gesture-handler";
+import { getTimestampInSeconds } from "../helpers/getTimeStampInSeconds";
+import { useContext } from "react";
+import { netInfoContext } from "../contexts/NetInfoContext";
+import { Icon } from "@rneui/themed";
 
 const sectionList = {
   PENDING: "PENDING",
@@ -49,11 +52,8 @@ const clientRequests = {
   WAITING: 3,
 };
 
-
-
-
-const initialTrucks = []
-const initialUserLocation = {}
+const initialTrucks = [];
+const initialUserLocation = {};
 
 export const HomeScreen = ({ navigation }) => {
   const [region, setRegion] = useState(initialRegion);
@@ -66,6 +66,7 @@ export const HomeScreen = ({ navigation }) => {
   const [expectedTime, setExpectedTime] = useState(0);
   const [expectedDistance, setExpectedDistance] = useState(0);
   const [isConnected, setIsConnected] = useState("I don't know");
+  const { isConnected: isConnectedToInternet } = useContext(netInfoContext);
 
   const panelRef = useRef(null);
   const [clientRequestSectionNum, setClientRequestSectionNum] = useState(
@@ -74,8 +75,6 @@ export const HomeScreen = ({ navigation }) => {
 
   const isFocused = useIsFocused();
   let mapRef = useRef(null);
-
-  
 
   // Un screen no llama a su clenup después de que se cambia de pantalla, por lo que el ciclo de vida normal de un componente en react native cambia un poco con esta clase de componentes
   // A su vez, la documentación recomienda usar el hooj useIsFocussed para sabre si está siendo mostrada la patanlla o no
@@ -88,9 +87,30 @@ export const HomeScreen = ({ navigation }) => {
     }
   }, [isFocused]);
 
+  const getActiveTrucks = (array, timeTolerance) => {
+    
+    const newTrucks = []
+    
+    // It cam   be undefined
+    array.forEach((element) => {
+      const now = getTimestampInSeconds();
+      const isOnline = element?.isOnline
+      let diff = (now - element.lastStatus) / 600000
+      if(diff <= 0.5 && isOnline) newTrucks.push(element)
+      
+      console.log({diff, isOnline})
+    });
+
+    console.log({newTrucks})
+    return newTrucks
+  };
+
   useEffect(() => {
     api().suscribeToWatchTruckLocations((array) => {
-      if (array) setTrucks(array);
+      if (array) {
+        const newArray = getActiveTrucks(array, 0.5);
+        setTrucks(newArray);
+      }
     });
 
     api().suscibeToRequestChanges({ clientId: user.id }, (request) => {
@@ -240,59 +260,67 @@ export const HomeScreen = ({ navigation }) => {
       >
         <BottomSheet ref={(ref) => (panelRef.current = ref)}>
           <Text>{isConnected}</Text>
-          <FlexContainer pdBottom={50}>
-            {!currentRequest ? (
-              <>
-                <RequestSheetContent
-                  setSheetSectionToWaiting={requestWater}
-                  isLoading={isLoading}
-                />
-              </>
-            ) : (
-              <>
-                {currentRequest.status === sectionList.PENDING && (
-                  <>
-                    <Text style={{ textAlign: "center", marginBottom: 5 }} h4>
-                      Buscando pipa
-                    </Text>
-                    <FlexContainer flex_ai_c>
-                      <Button title="Solicitar pedido" loading={isLoading} />
-                    </FlexContainer>
-                  </>
-                )}
-
-                {currentRequest.status === sectionList.TAKEN && (
-                  <WaitingSheetContent
-                    currentRequest={currentRequest}
-                    expectedDistance={expectedDistance}
-                    expectedTime={expectedTime}
+          {isConnectedToInternet ? (
+            <FlexContainer pdBottom={50}>
+              {!currentRequest ? (
+                <>
+                  <RequestSheetContent
+                    setSheetSectionToWaiting={requestWater}
+                    isLoading={isLoading}
                   />
-                )}
+                </>
+              ) : (
+                <>
+                  {currentRequest.status === sectionList.PENDING && (
+                    <>
+                      <Text style={{ textAlign: "center", marginBottom: 5 }} h4>
+                        Buscando pipa
+                      </Text>
+                      <FlexContainer flex_ai_c>
+                        <Button title="Solicitar pedido" loading={isLoading} />
+                      </FlexContainer>
+                    </>
+                  )}
 
-                {currentRequest.status === sectionList.ARRIVED && (
-                  <>
-                    <Text style={{ textAlign: "center" }} h4>
-                      El camión ha llegado
-                    </Text>
-                    <Text style={{ textAlign: "center" }} h5>
-                      Prepara tus contenedores
-                    </Text>
-                  </>
-                )}
+                  {currentRequest.status === sectionList.TAKEN && (
+                    <WaitingSheetContent
+                      currentRequest={currentRequest}
+                      expectedDistance={expectedDistance}
+                      expectedTime={expectedTime}
+                    />
+                  )}
 
-                {currentRequest.status === sectionList.CHARGING && (
-                  <>
-                    <Text style={{ textAlign: "center" }} h4>
-                      Por favor pague al chofer
-                    </Text>
-                    <Text style={{ textAlign: "center" }} h4>
-                      $200
-                    </Text>
-                  </>
-                )}
-              </>
-            )}
-          </FlexContainer>
+                  {currentRequest.status === sectionList.ARRIVED && (
+                    <>
+                      <Text style={{ textAlign: "center" }} h4>
+                        El camión ha llegado
+                      </Text>
+                      <Text style={{ textAlign: "center" }} h5>
+                        Prepara tus contenedores
+                      </Text>
+                    </>
+                  )}
+
+                  {currentRequest.status === sectionList.CHARGING && (
+                    <>
+                      <Text style={{ textAlign: "center" }} h4>
+                        Por favor pague al chofer
+                      </Text>
+                      <Text style={{ textAlign: "center" }} h4>
+                        $200
+                      </Text>
+                    </>
+                  )}
+                </>
+              )}
+            </FlexContainer>
+          ) : (
+            <>
+              <Icon name="wifi-off" />
+              <Text style={styles.noInternet}>No hay conexión a internet</Text>
+            </>
+          )}
+
           {Platform.OS === "ios" ? (
             <View style={{ marginBottom: 40 }}></View>
           ) : (
@@ -309,5 +337,9 @@ const styles = StyleSheet.create({
   map: {
     width: "100%",
     height: "100%",
+  },
+  noInternet: {
+    fontSize: 20,
+    textAlign: "center",
   },
 });
