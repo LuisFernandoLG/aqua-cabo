@@ -1,3 +1,4 @@
+import { Icon } from "@rneui/base";
 import { Button, Divider, Input, Text } from "@rneui/themed";
 import { useRef, useState } from "react";
 import { Alert } from "react-native";
@@ -64,7 +65,6 @@ export const RequestSheetContent = ({
     <View>
       <FlexContainer flex_ai_c>
         <Text style={styles.title} h4>
-          {" "}
           Cantidad aproximada
         </Text>
       </FlexContainer>
@@ -121,9 +121,10 @@ export const RequestSheetContent = ({
         <Button
           title="Solicitar pedido"
           onPress={handleOnClick}
-          loading={isLoading}
-          disabled={isLoading}
-        />
+        >
+          Solicitar pedido
+          <Icon name="send" style={{marginLeft:10}}  color={"white"}/>
+        </Button>
       </FlexContainer>
     </View>
   );

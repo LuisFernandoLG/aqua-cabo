@@ -17,6 +17,7 @@ import { Platform } from "react-native";
 import { useContext } from "react";
 import { netInfoContext } from "../contexts/NetInfoContext";
 import { Icon } from "@rneui/base";
+import { locationConstants } from "../constants/locationConstants";
 
 const initialRegion = {
   latitude: 22.945646,
@@ -84,10 +85,8 @@ export const DriverHomeScreen = ({ navigation }) => {
       const r = formatCurretRegion(requestsAccepted[0]);
       setWaterToFill(requestsAccepted[0].waterQuantity);
 
-      console.log({ r });
       setCurrentRegion(r);
     }
-    console.log("cambió la ubi");
   }, [userLocation]);
 
   const formatCurretRegion = (dest) => {
@@ -131,8 +130,6 @@ export const DriverHomeScreen = ({ navigation }) => {
   useEffect(() => {
     if (userLocation) {
       if (isFocused) {
-        console.log("ENVIANDO. . ... . .. . . .");
-        console.log({ userLocation });
         // Update and animate to show between two points
         sendCurrentLocationToDb();
       }
@@ -156,16 +153,13 @@ export const DriverHomeScreen = ({ navigation }) => {
         (item) => item.status === "TAKEN" || "ARRIVED"
       );
 
-      console.log({ waitingRequests });
       setRequestsByClients(waitingRequests);
       setRequestsAccepted(takenRequests);
-      console.log({ notDoneRequests });
     });
   }, []);
 
   const updateUserLocation = (event) => {
     if (isFocused) {
-      console.log("actualizando desde updateUserLocation");
       if (!event?.nativeEvent?.coordinate) return false;
       const location = event.nativeEvent.coordinate;
       setUserLocation(location);
@@ -212,7 +206,6 @@ export const DriverHomeScreen = ({ navigation }) => {
     }
   }, [waterFilled]);
 
-  console.log("renderizando HOME sendDriverCoordsToDb");
 
   useEffect(() => {
     if (isFocused && userLocation) {
@@ -246,8 +239,8 @@ export const DriverHomeScreen = ({ navigation }) => {
         initialRegion={userLocation || initialRegion}
         showsUserLocation={true}
         onUserLocationChange={updateUserLocation}
-        userLocationUpdateInterval={5000}
-        userLocationFastestInterval={5000}
+        userLocationUpdateInterval={locationConstants.driverLocationUpdateSpeed}
+        userLocationFastestInterval={locationConstants.driverLocationUpdateSpeed}
         provider={PROVIDER_GOOGLE}
         ref={mapRef}
         style={styles.map}

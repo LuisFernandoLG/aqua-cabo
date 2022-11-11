@@ -5,6 +5,7 @@ import { FlexContainer } from "./FlexContainer";
 import { GOOGLE_MAPS_APIKEY } from "@env";
 import MapViewDirections from "react-native-maps-directions";
 import { getRegionForCoordinates } from "../helpers/getRegionForCoordinates";
+import { locationConstants } from "../constants/locationConstants";
 
 const answers = {
   YES: "YES",
@@ -41,7 +42,7 @@ export const ModalX = ({
     return getRegionForCoordinates(points);
   };
 
-  const handleNotTaken = ()=> {}
+  const handleNotTaken = () => {};
 
   return (
     <View style={styles.centeredView}>
@@ -60,6 +61,12 @@ export const ModalX = ({
               style={styles.miniMap}
               showsUserLocation
               provider={PROVIDER_GOOGLE}
+              userLocationUpdateInterval={
+                locationConstants.driverLocationUpdateSpeed
+              }
+              userLocationFastestInterval={
+                locationConstants.driverLocationUpdateSpeed
+              }
               region={{
                 longitude: getRegion().longitude,
                 latitude: getRegion().latitude,

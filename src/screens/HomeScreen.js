@@ -20,6 +20,9 @@ import { useContext } from "react";
 import { netInfoContext } from "../contexts/NetInfoContext";
 import { Icon } from "@rneui/themed";
 import { Alert } from "react-native";
+import { Loader } from "../components/Loader";
+import { locationConstants } from "../constants/locationConstants";
+import { SectionList } from "react-native";
 
 const sectionList = {
   PENDING: "PENDING",
@@ -59,6 +62,7 @@ const initialUserLocation = {};
 export const HomeScreen = ({ navigation }) => {
   const [region, setRegion] = useState(initialRegion);
   const [trucks, setTrucks] = useState(initialTrucks);
+  const [allTrucks, setAllTrucks] = useState([]);
   const [userLocation, setUserLocation] = useState(initialUserLocation);
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
@@ -95,19 +99,19 @@ export const HomeScreen = ({ navigation }) => {
     array.forEach((element) => {
       const now = getTimestampInSeconds();
       const isOnline = element?.isOnline;
-      let diff = (now - element.lastStatus) / 600000;
-      if (diff <= 0.5 && isOnline) newTrucks.push(element);
+      let diff = (now - element.lastStatus) / 60000;
+      if (diff <= 0.1 && isOnline) newTrucks.push(element);
 
       console.log({ diff, isOnline });
     });
 
-    console.log({ newTrucks });
     return newTrucks;
   };
 
   useEffect(() => {
     api().suscribeToWatchTruckLocations((array) => {
       if (array) {
+        setAllTrucks(array)
         const newArray = getActiveTrucks(array, 0.5);
         setTrucks(newArray);
       }
@@ -163,8 +167,7 @@ export const HomeScreen = ({ navigation }) => {
 
   const requestWater = async (water) => {
     if (trucks.length === 0) return showMessage();
-    else
-    {
+    else {
       setIsLoading(true);
       api().sendRequestToCloserDriver({
         clientId: user.id,
@@ -208,7 +211,7 @@ export const HomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     if (userLocation) {
-      console.log("mandando ubicacionc");
+      setTrucks(getActiveTrucks(trucks, 0.5));
       api().sendClientCoordsToDb({
         cliendId: user.id,
         newCoords: userLocation,
@@ -217,7 +220,7 @@ export const HomeScreen = ({ navigation }) => {
   }, [userLocation]);
 
   const assignTruck = () => {
-    const t = trucks.find((item) => item.driverId === currentRequest.driverId);
+    const t = allTrucks.find((item) => item.driverId === currentRequest.driverId);
     setTruckRequestAccepted(t);
   };
 
@@ -225,6 +228,8 @@ export const HomeScreen = ({ navigation }) => {
   useEffect(() => {
     if (trucks && currentRequest) assignTruck();
   }, [currentRequest]);
+
+  console.log({currentRequest})
 
   return (
     <View>
@@ -236,7 +241,10 @@ export const HomeScreen = ({ navigation }) => {
         // region={region}
         provider={PROVIDER_GOOGLE}
         showsUserLocation={true}
-        userLocationUpdateInterval={15000}
+        userLocationUpdateInterval={locationConstants.clientLocationUpdateSpeed}
+        userLocationFastestInterval={
+          locationConstants.clientLocationUpdateSpeed
+        }
         onUserLocationChange={updateUserLocation}
       >
         {truckRequestAccepted && (
@@ -248,26 +256,28 @@ export const HomeScreen = ({ navigation }) => {
                 latitude: truckRequestAccepted.latitude,
               }}
               title={truckRequestAccepted.driverId}
-              description={"any description"}
+              description={`${truckRequestAccepted.waterQuantity}L`}
               image={require("../../assets/bus.png")}
             ></Marker>
 
-            <MapViewDirections
-              strokeWidth={3}
-              origin={{
-                latitude: userLocation.latitude,
-                longitude: userLocation.longitude,
-              }}
-              destination={{
-                longitude: truckRequestAccepted.longitude,
-                latitude: truckRequestAccepted.latitude,
-              }}
-              apikey={GOOGLE_MAPS_APIKEY}
-              onReady={(result) => {
-                setExpectedDistance(result.distance);
-                setExpectedTime(result.duration);
-              }}
-            />
+            {currentRequest.status !== SectionList.PENDING && (
+              <MapViewDirections
+                strokeWidth={3}
+                origin={{
+                  latitude: userLocation.latitude,
+                  longitude: userLocation.longitude,
+                }}
+                destination={{
+                  longitude:  truckRequestAccepted.longitude,
+                  latitude: truckRequestAccepted.latitude,
+                }}
+                apikey={GOOGLE_MAPS_APIKEY}
+                onReady={(result) => {
+                  setExpectedDistance(result.distance);
+                  setExpectedTime(result.duration);
+                }}
+              />
+            )}
           </>
         )}
         {trucks && !truckRequestAccepted && (
@@ -298,7 +308,7 @@ export const HomeScreen = ({ navigation }) => {
                         Buscando pipa
                       </Text>
                       <FlexContainer flex_ai_c>
-                        <Button title="Solicitar pedido" loading={isLoading} />
+                        <Loader />
                       </FlexContainer>
                     </>
                   )}
