@@ -34,82 +34,84 @@ export const Router = () => {
         initialRouteName="login"
         drawerContent={(props) => <CustomDrawerContent {...props} />}
       >
-        <Drawer.Screen
-          name="DriverLogin"
-          options={{
-            drawerItemStyle: { display: "none" },
-            headerShown: false,
-            swipeEdgeWidth: 0,
-          }}
-          component={DriverLoginScreen}
-        />
-        <Drawer.Screen
-          name="login"
-          options={{
-            drawerItemStyle: { display: "none" },
-            headerShown: false,
-            swipeEdgeWidth: 0,
-          }}
-          component={LoginScreen}
-        />
+        <Drawer.Group>
+          <Drawer.Screen
+            name="DriverLogin"
+            options={{
+              drawerItemStyle: { display: "none" },
+              headerShown: false,
+              swipeEdgeWidth: 0,
+            }}
+            component={DriverLoginScreen}
+          />
+          <Drawer.Screen
+            name="login"
+            options={{
+              drawerItemStyle: { display: "none" },
+              headerShown: false,
+              swipeEdgeWidth: 0,
+            }}
+            component={LoginScreen}
+          />
 
-        <Drawer.Screen
-          name="DriverHome"
-          options={{
-            title: "Conductor",
-            drawerItemStyle: { display: isDriver ? "flex" : "none" },
-          }}
-          component={DriverHomeScreen}
-        />
+          <Drawer.Screen
+            name="DriverHome"
+            options={{
+              title: "Conductor",
+              drawerItemStyle: { display: isDriver ? "flex" : "none" },
+            }}
+            component={DriverHomeScreen}
+          />
 
-        <Drawer.Screen
-          name="Home"
-          options={{
-            title: "AquaCabo",
-            drawerItemStyle: { display: isDriver ? "none" : "flex" },
-          }}
-          component={HomeScreen}
-        />
+          <Drawer.Screen
+            name="Home"
+            options={{
+              title: "AquaCabo",
+              drawerItemStyle: { display: isDriver ? "none" : "flex" },
+            }}
+            component={HomeScreen}
+          />
 
-        <Drawer.Screen
-          name="Orders"
-          options={{
-            title: "Pedidos",
-            drawerItemStyle: { display: isDriver ? "none" : "flex" },
-          }}
-          component={OrdersScreen}
-        />
+          <Drawer.Screen
+            name="Orders"
+            options={{
+              title: "Pedidos",
+              drawerItemStyle: { display: isDriver ? "none" : "flex" },
+            }}
+            component={OrdersScreen}
+          />
 
-        <Drawer.Screen
-          name="Profile"
-          options={{ title: "Perfil" }}
-          component={ProfileScreen}
-        />
-        <Drawer.Screen
-          name="About"
-          options={{ title: "Acerca de" }}
-          component={AboutScreen}
-        />
+          <Drawer.Screen
+            name="Profile"
+            options={{ title: "Perfil" }}
+            component={ProfileScreen}
+          />
+          <Drawer.Screen
+            name="About"
+            options={{ title: "Acerca de" }}
+            component={AboutScreen}
+          />
 
-        <Drawer.Screen
-          name="SignUp"
-          options={{
-            drawerItemStyle: { display: "none" },
-            headerShown: false,
-            swipeEdgeWidth: 0,
-          }}
-          component={SignUpScreen}
-        />
+          <Drawer.Screen
+            name="SignUp"
+            options={{
+              drawerItemStyle: { display: "none" },
+              headerShown: false,
+              swipeEdgeWidth: 0,
+            }}
+            component={SignUpScreen}
+          />
 
-        <Drawer.Screen
-          name="SignUpDriver"
-          options={{
-            drawerItemStyle: { display: "none" },
-            headerShown: false,
-            swipeEdgeWidth: 0,
-          }}
-          component={SignUpDriverScreen}
-        />
+          <Drawer.Screen
+            name="SignUpDriver"
+            options={{
+              drawerItemStyle: { display: "none" },
+              headerShown: false,
+              swipeEdgeWidth: 0,
+            }}
+            component={SignUpDriverScreen}
+          />
+        </Drawer.Group>
       </Drawer.Navigator>
     </NavigationContainer>
   );

@@ -19,6 +19,7 @@ import { getTimestampInSeconds } from "../helpers/getTimeStampInSeconds";
 import { useContext } from "react";
 import { netInfoContext } from "../contexts/NetInfoContext";
 import { Icon } from "@rneui/themed";
+import { Alert } from "react-native";
 
 const sectionList = {
   PENDING: "PENDING",
@@ -88,21 +89,20 @@ export const HomeScreen = ({ navigation }) => {
   }, [isFocused]);
 
   const getActiveTrucks = (array, timeTolerance) => {
-    
-    const newTrucks = []
-    
+    const newTrucks = [];
+
     // It cam   be undefined
     array.forEach((element) => {
       const now = getTimestampInSeconds();
-      const isOnline = element?.isOnline
-      let diff = (now - element.lastStatus) / 600000
-      if(diff <= 0.5 && isOnline) newTrucks.push(element)
-      
-      console.log({diff, isOnline})
+      const isOnline = element?.isOnline;
+      let diff = (now - element.lastStatus) / 600000;
+      if (diff <= 0.5 && isOnline) newTrucks.push(element);
+
+      console.log({ diff, isOnline });
     });
 
-    console.log({newTrucks})
-    return newTrucks
+    console.log({ newTrucks });
+    return newTrucks;
   };
 
   useEffect(() => {
@@ -144,14 +144,35 @@ export const HomeScreen = ({ navigation }) => {
     await api().removeClientRequest({ requestId: user.id });
   };
 
-  const requestWater = async (water) => {
-    setIsLoading(true);
-    api().sendRequestToCloserDriver({
-      clientId: user.id,
-      clientCoords: userLocation,
-      waterQuantity: parseInt(water),
-      trucks,
+  const showMessage = () =>
+    new Promise((resolve) => {
+      Alert.alert(
+        "Oops",
+        "Parece que no hay pipas disponibles",
+        [
+          {
+            text: "Aceptar",
+            onPress: () => {
+              resolve("YES");
+            },
+          },
+        ],
+        { cancelable: false }
+      );
     });
+
+  const requestWater = async (water) => {
+    if (trucks.length === 0) return showMessage();
+    else
+    {
+      setIsLoading(true);
+      api().sendRequestToCloserDriver({
+        clientId: user.id,
+        clientCoords: userLocation,
+        waterQuantity: parseInt(water),
+        trucks,
+      });
+    }
   };
 
   const cancellRequest = () => {
