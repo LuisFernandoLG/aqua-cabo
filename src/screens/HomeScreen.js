@@ -23,6 +23,7 @@ import { Alert } from "react-native";
 import { Loader } from "../components/Loader";
 import { locationConstants } from "../constants/locationConstants";
 import { SectionList } from "react-native";
+import { useFirebase } from "../hooks/useFirebase";
 
 const sectionList = {
   PENDING: "PENDING",
@@ -61,17 +62,18 @@ const initialUserLocation = {};
 
 export const HomeScreen = ({ navigation }) => {
   const [region, setRegion] = useState(initialRegion);
-  const [trucks, setTrucks] = useState(initialTrucks);
-  const [allTrucks, setAllTrucks] = useState([]);
   const [userLocation, setUserLocation] = useState(initialUserLocation);
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
+  const [trucks, setTrucks] = useState(initialTrucks);
   const [truckRequestAccepted, setTruckRequestAccepted] = useState(null);
   const [currentRequest, setCurrentRequest] = useState(null);
   const [expectedTime, setExpectedTime] = useState(0);
   const [expectedDistance, setExpectedDistance] = useState(0);
   const [isConnected, setIsConnected] = useState("I don't know");
   const { isConnected: isConnectedToInternet } = useContext(netInfoContext);
+
+  const {allTrucks, removeListeners, listenToTrucks} = useFirebase()
 
   const panelRef = useRef(null);
   const [clientRequestSectionNum, setClientRequestSectionNum] = useState(
@@ -101,43 +103,69 @@ export const HomeScreen = ({ navigation }) => {
       const isOnline = element?.isOnline;
       let diff = (now - element.lastStatus) / 60000;
       if (diff <= 0.1 && isOnline) newTrucks.push(element);
-
-      console.log({ diff, isOnline });
+      
+      // console.log({ diff, isOnline });
     });
-
-    return newTrucks;
+    
+    // movi aqui para que no DESAPARZCECAN las pipas cuando se pierde la conexion
+    return array;
   };
 
+  const cancellRequest = async () => {
+    const requestId = user.id;
+    await api().changeRequestStatus({ requestId, newStatus: "CANCELLED" });
+  };
+
+  useEffect(()=>{
+    if(allTrucks.length > 0){
+      const newTrucks = getActiveTrucks(allTrucks, 1);
+      setTrucks(newTrucks);
+    }
+  },[allTrucks])
+
   useEffect(() => {
-    api().suscribeToWatchTruckLocations((array) => {
-      if (array) {
-        setAllTrucks(array)
-        const newArray = getActiveTrucks(array, 0.5);
-        setTrucks(newArray);
-      }
-    });
+    if(!isFocused){
+      removeListeners()
+    }
+
+    listenToTrucks()
 
     api().suscibeToRequestChanges({ clientId: user.id }, (request) => {
-      if (request.length === 0) {
+      if (request?.length === 0) {
         setCurrentRequest(null);
         setIsLoading(false);
         setTruckRequestAccepted(null);
+        return null;
+      }
+
+      if (request.status === "CANCELLED") {
+        saveRequest({ request });
+        setCurrentRequest(null);
+        setIsLoading(false);
+        alert("¡La solicitud fue cancelada!");
         return null;
       }
       if (request.status === "DONE") {
         saveRequest({ request });
         setCurrentRequest(null);
         setIsLoading(false);
+        return null;
+      }
+      if (request.status === "TAKEN") {
+        assignTruck({ request });
+        setCurrentRequest(request);
+        return null;
       } else {
-        if (request.status === "TAKEN") {
-          assignTruck({ request });
-          setCurrentRequest(request);
-        } else {
-          setCurrentRequest(request);
-        }
+        setCurrentRequest(request);
       }
     });
-  }, []);
+
+    ()=>{
+      removeListeners()
+    }
+
+
+  }, [isFocused]);
 
   const saveRequest = async ({ request }) => {
     await api().saveClientRequest({
@@ -174,13 +202,10 @@ export const HomeScreen = ({ navigation }) => {
         clientCoords: userLocation,
         waterQuantity: parseInt(water),
         trucks,
+      }).catch((error)=>{
+        alert(error)
       });
     }
-  };
-
-  const cancellRequest = () => {
-    if (clientRequestSectionNum === clientRequests.WAITING)
-      setClientRequestSectionNum(clientRequests.HIDE);
   };
 
   useEffect(() => {}, [clientRequestSectionNum]);
@@ -220,8 +245,12 @@ export const HomeScreen = ({ navigation }) => {
   }, [userLocation]);
 
   const assignTruck = () => {
-    const t = allTrucks.find((item) => item.driverId === currentRequest.driverId);
-    setTruckRequestAccepted(t);
+    if (currentRequest) {
+      const t = allTrucks.find(
+        (item) => item.driverId === currentRequest.driverId
+      );
+      if (t) setTruckRequestAccepted(t);
+    }
   };
 
   // *! MEJORAR, A VECES DEJA DE FUNCIONAR, TAL VEZ CUANDO SE ABRA DE NUEVO LA APP NO APREZCA
@@ -229,13 +258,16 @@ export const HomeScreen = ({ navigation }) => {
     if (trucks && currentRequest) assignTruck();
   }, [currentRequest]);
 
-  console.log({currentRequest})
+  const handleClick  = () => {
+    console.log("click")
+  }
 
   return (
     <View>
       <MapView
         style={styles.map}
         initialRegion={region}
+        onPress={handleClick}
         // ref={mapRef}
         // onRegionChange={(region) => setRegion(region)}
         // region={region}
@@ -260,35 +292,39 @@ export const HomeScreen = ({ navigation }) => {
               image={require("../../assets/bus.png")}
             ></Marker>
 
-            {currentRequest.status !== SectionList.PENDING && (
-              <MapViewDirections
-                strokeWidth={3}
-                origin={{
-                  latitude: userLocation.latitude,
-                  longitude: userLocation.longitude,
-                }}
-                destination={{
-                  longitude:  truckRequestAccepted.longitude,
-                  latitude: truckRequestAccepted.latitude,
-                }}
-                apikey={GOOGLE_MAPS_APIKEY}
-                onReady={(result) => {
-                  setExpectedDistance(result.distance);
-                  setExpectedTime(result.duration);
-                }}
-              />
-            )}
+            {currentRequest
+              ? currentRequest.status !== SectionList.PENDING && (
+                  <MapViewDirections
+                    strokeWidth={3}
+                    origin={{
+                      latitude: userLocation.latitude,
+                      longitude: userLocation.longitude,
+                    }}
+                    destination={{
+                      longitude: truckRequestAccepted.longitude,
+                      latitude: truckRequestAccepted.latitude,
+                    }}
+                    apikey={GOOGLE_MAPS_APIKEY}
+                    onReady={(result) => {
+                      setExpectedDistance(result.distance);
+                      setExpectedTime(result.duration);
+                    }}
+                  />
+                )
+              : null}
           </>
         )}
-        {trucks && !truckRequestAccepted && (
+        {/* {trucks && !truckRequestAccepted && (
+          )} */}
           <AvailableTruckGroup trucks={trucks} />
-        )}
       </MapView>
 
       {/* <ScrollView> */}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
+        <View style={styles.bsheet}>
+
         <BottomSheet ref={(ref) => (panelRef.current = ref)}>
           <Text>{isConnected}</Text>
           {isConnectedToInternet ? (
@@ -318,6 +354,7 @@ export const HomeScreen = ({ navigation }) => {
                       currentRequest={currentRequest}
                       expectedDistance={expectedDistance}
                       expectedTime={expectedTime}
+                      cancellRequest={cancellRequest}
                     />
                   )}
 
@@ -358,6 +395,7 @@ export const HomeScreen = ({ navigation }) => {
             <View style={{ marginBottom: 20 }}></View>
           )}
         </BottomSheet>
+        </View>
       </KeyboardAvoidingView>
       {/* </ScrollView> */}
     </View>
@@ -373,4 +411,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     textAlign: "center",
   },
+  bsheet:{
+    zIndex:100
+  }
 });

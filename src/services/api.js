@@ -10,6 +10,7 @@ import {
   onDisconnect,
   off,
   serverTimestamp,
+  update,
 } from "firebase/database";
 import {
   createUserWithEmailAndPassword,
@@ -29,7 +30,7 @@ export const api = () => {
       lastStatus: serverTimestamp(),
     };
     try {
-      set(ref(db, "truckLocations/" + driverId), truck);
+      update(ref(db, "truckLocations/" + driverId), truck);
     } catch (error) {
       console.log({ errorRR: error });
     }
@@ -136,31 +137,97 @@ export const api = () => {
     listeners.push(listenerRefernce);
   };
 
+  const getTrucksWithEnoughWater = async ({ waterQuantity, trucks }) => {
+    return new Promise((resolve, reject) => {
+    
+      const reff = ref(db, "clientRequests/");
+      onValue(reff, (snapshot) => {
+
+
+
+          const data = snapshot.val() ? snapshot.val() : []
+          
+          // console.log({trucks})
+
+          const array = Object.values(data);
+          let waterRequestedByTrucks = {}
+
+          array.forEach((item) => {
+            if(item.status === "DONE") return false;
+            let key = item.driverId
+            let prevValue = waterRequestedByTrucks[item.driverId] ? waterRequestedByTrucks[item.driverId] : 0
+            waterRequestedByTrucks = {
+              [key]: prevValue + item.waterQuantity
+            }
+          })
+          console.log({waterRequestedByTrucks})
+          
+          const trucksWithEnoughWater = trucks.filter((item) => {
+            let truckTotalWaterRequested = waterRequestedByTrucks[item.driverId] ? waterRequestedByTrucks[item.driverId] : 0
+            let truckTotalWater = item.esp32.litros
+            let hypoteticalWater = truckTotalWater - truckTotalWaterRequested
+            console.log({hypoteticalWater})
+            return hypoteticalWater >= waterQuantity
+          })
+
+          if(trucksWithEnoughWater.length === 0){
+            reject("No hay camiones con suficiente agua")
+          }
+
+          resolve(trucksWithEnoughWater)  
+                  
+        
+      });
+      
+    })  };
+
   const sendRequestToCloserDriver = async (
     { clientId, waterQuantity, clientCoords, trucks },
     cb
   ) => {
-    var today = new Date();
+    return new Promise(async (resolve, reject) => {
 
-    // obtener la fecha y la hora
-    var now = today.toLocaleString();
+      getTrucksWithEnoughWater({trucks, waterQuantity}).then((newTrucks)=>{
+        var today = new Date();
+        // obtener la fecha y la hora
+        var now = today.toLocaleString();
+    
+        const truck = getCloserTruck({ trucks:newTrucks, clientCoords });
+        const request = {
+          clientCoords: clientCoords,
+          clientId: clientId,
+          waterQuantity: waterQuantity,
+          status: "PENDING",
+          driverId: truck.driverId,
+          date: now,
+        };
+    
+        try {
+          set(ref(db, "clientRequests/" + clientId), request).then(()=>{
+            resolve(true)
+          })
+          
+        } catch (error) {
+          console.log({ errorRR: error });
+          reject("Algo salió mal al enviar la solicitud")
+        }
+    
+    
+        }).catch((error)=>{
+          console.log("error", error)
+          reject(error)
+        })
 
-    const truck = getCloserTruck({ trucks, clientCoords });
-    const request = {
-      clientCoords: clientCoords,
-      clientId: clientId,
-      waterQuantity: waterQuantity,
-      status: "PENDING",
-      driverId: truck.driverId,
-      date: now,
-    };
+    })
+    // console.log({trucks})
+    // obtener sumatoria del agua de los pedidos
+    
+    // obtener el agua total del camion
 
-    try {
-      await set(ref(db, "clientRequests/" + clientId), request);
-      cb();
-    } catch (error) {
-      console.log({ errorRR: error });
-    }
+    // verificar si el camion tiene agua suficiente
+
+    // si tiene agua suficiente, enviar el pedido
+
   };
 
   const suscibeToRequestChanges = ({ clientId }, cb) => {
@@ -274,6 +341,11 @@ export const api = () => {
     set(reff, false);
   };
 
+  const changeStateOfWater = ({ sensorId, value }) => {
+    const reff = ref(db, "valvula/" + sensorId + "/isOpen");
+    set(reff, value);
+  };
+
   const suscribeToAmIConnected = (cb) => {
     const connectedRef = ref(db, ".info/connected");
     onValue(connectedRef, (snap) => {
@@ -281,6 +353,18 @@ export const api = () => {
         cb(true);
       } else {
         cb(false);
+      }
+    });
+  };
+
+  const suscribeToWaterLevel = (idSensor, cb) => {
+    const connectedRef = ref(db, `valvula/${idSensor}/nivel`);
+    onValue(connectedRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.val();
+        cb(data);
+      } else {
+        cb("No existe");
       }
     });
   };
@@ -303,7 +387,9 @@ export const api = () => {
     suscribeToAmIConnected,
     unsuscribeOfAllListener,
     sendLastTimestamp,
-    setOffline
+    setOffline,
+    suscribeToWaterLevel,
+    changeStateOfWater,
   };
 };
 
@@ -317,6 +403,7 @@ const orderByDistances = (array) => {
 };
 
 const getCloserTruck = ({ trucks, clientCoords }) => {
+  console.log({trucks})
   try {
     const distances = trucks.map((truck) => {
       return {

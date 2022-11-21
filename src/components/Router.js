@@ -12,6 +12,7 @@ import { CustomDrawerContent } from "./CustomDrawer";
 import { DefaultTheme } from "@react-navigation/native";
 import { HomeScreen } from "../screens/HomeScreen";
 import { SignUpDriverScreen } from "../screens/SignUpDriverScreen";
+import Payment from "./Payment";
 
 export const Router = () => {
   const Drawer = createDrawerNavigator();
@@ -28,6 +29,8 @@ export const Router = () => {
   const isDriver = user?.type === "DRIVER";
   const isClient = user?.type === "CLIENT";
 
+  console.log({user, isDriver, isClient, isLogged})
+
   return (
     <NavigationContainer theme={MyTheme}>
       <Drawer.Navigator
@@ -35,6 +38,27 @@ export const Router = () => {
         drawerContent={(props) => <CustomDrawerContent {...props} />}
       >
         <Drawer.Group>
+          {isClient &&(
+            <Drawer.Screen
+              name="Home"
+              options={{
+                title: "AquaCabo",
+                drawerItemStyle: { display: isDriver ? "none" : "flex" },
+              }}
+              component={HomeScreen}
+            />
+          )}
+          {isDriver && (
+            <Drawer.Screen
+              name="DriverHome"
+              options={{
+                title: "Conductor",
+                drawerItemStyle: { display: isDriver ? "flex" : "none" },
+              }}
+              component={DriverHomeScreen}
+            />
+          )}
+
           <Drawer.Screen
             name="DriverLogin"
             options={{
@@ -52,24 +76,6 @@ export const Router = () => {
               swipeEdgeWidth: 0,
             }}
             component={LoginScreen}
-          />
-
-          <Drawer.Screen
-            name="DriverHome"
-            options={{
-              title: "Conductor",
-              drawerItemStyle: { display: isDriver ? "flex" : "none" },
-            }}
-            component={DriverHomeScreen}
-          />
-
-          <Drawer.Screen
-            name="Home"
-            options={{
-              title: "AquaCabo",
-              drawerItemStyle: { display: isDriver ? "none" : "flex" },
-            }}
-            component={HomeScreen}
           />
 
           <Drawer.Screen

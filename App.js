@@ -8,8 +8,7 @@ import { StatusBar } from "expo-status-bar";
 import * as Location from "expo-location";
 import { useEffect } from "react";
 import { NetInfoProvider } from "./src/contexts/NetInfoContext";
-
-let times = 0
+let times = 0;
 
 export default function App() {
   const AsyncAlert = async () =>
@@ -34,10 +33,10 @@ export default function App() {
     if (status !== "granted") {
       await AsyncAlert()
         .then(() => {
-          times++
-          if (times > 1){
+          times++;
+          if (times > 1) {
             Linking.openSettings();
-          }else{
+          } else {
             requestLocationPermission();
           }
         })

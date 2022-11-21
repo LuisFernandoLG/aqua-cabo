@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { FlexContainer } from "../components/FlexContainer";
+import { WaterContainer } from "../components/WaterContainer";
 import { netInfoContext } from "../contexts/NetInfoContext";
 import { useAuth } from "../hooks/useAuth";
 import { api } from "../services/api";
@@ -116,6 +117,8 @@ export const LoginScreen = () => {
                 onPress={goToLoginDriverScreen}
                 containerStyle={styles.middleBtn}
               />
+
+              {/* <WaterContainer/> */}
 
             </FlexContainer>
           </FlexContainer>

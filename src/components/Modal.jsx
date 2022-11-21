@@ -15,6 +15,7 @@ const answers = {
 export const ModalX = ({
   setAnswer,
   isOpen,
+  cancellRequest,
   closeModal,
   clientCoords,
   driverCoords,
@@ -106,7 +107,7 @@ export const ModalX = ({
 
               <Pressable
                 style={[styles.button, styles.buttonClose]}
-                onPress={handleNotTaken}
+                onPress={cancellRequest}
               >
                 <Text style={styles.textStyle}>Rechazar</Text>
               </Pressable>

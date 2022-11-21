@@ -23,7 +23,7 @@ export const FloatContainer = ({
 };
 
 const styles = ({ position, top, right, bottom, left, width, zIndex }) => ({
-  position: position && "absolute",
+  position: "absolute",
 
   top: top ? top : "auto",
   right: right ? right : "auto",

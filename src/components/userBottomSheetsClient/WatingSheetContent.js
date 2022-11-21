@@ -4,10 +4,10 @@ import { View } from "react-native";
 import { FlexContainer } from "../FlexContainer";
 
 export const WaitingSheetContent = ({
-  cancellRequest,
   currentRequest,
   expectedTime,
   expectedDistance,
+  cancellRequest
 }) => {
   return (
     <View>

@@ -18,6 +18,8 @@ import { useContext } from "react";
 import { netInfoContext } from "../contexts/NetInfoContext";
 import { Icon } from "@rneui/base";
 import { locationConstants } from "../constants/locationConstants";
+import { WaterContainer } from "../components/WaterContainer";
+import { FloatContainer } from "../components/FloatContainer";
 
 const initialRegion = {
   latitude: 22.945646,
@@ -50,6 +52,7 @@ export const DriverHomeScreen = ({ navigation }) => {
   const isFocused = useIsFocused();
   const [userLocation, setUserLocation] = useState(null);
   const [requestsByClients, setRequestsByClients] = useState([]);
+  const [pendingRequest, setPendingRequest] = useState(null);
   const [requestsAccepted, setRequestsAccepted] = useState([]);
   const { openModal, closeModal, isOpen } = useMapModal();
   const [currentClientDestination, setCurrentClientDestination] =
@@ -75,19 +78,13 @@ export const DriverHomeScreen = ({ navigation }) => {
         }
       });
     } else {
-      
     }
   }, [isFocused]);
 
   useEffect(() => {
-    if (requestsAccepted.length > 0 && userLocation) {
-      setCurrentClientDestination(requestsAccepted[0]);
-      const r = formatCurretRegion(requestsAccepted[0]);
-      setWaterToFill(requestsAccepted[0].waterQuantity);
-
-      setCurrentRegion(r);
+    if (pendingRequest && userLocation) {
     }
-  }, [userLocation]);
+  }, [userLocation, requestsAccepted]);
 
   const formatCurretRegion = (dest) => {
     const points = [
@@ -116,7 +113,7 @@ export const DriverHomeScreen = ({ navigation }) => {
 
   const sendCurrentLocationToDb = async () => {
     if (!user) return false;
-    await api().sendDriverCoordsToDb({
+    api().sendDriverCoordsToDb({
       driverId: user.id,
       newCoords: userLocation,
     });
@@ -143,20 +140,33 @@ export const DriverHomeScreen = ({ navigation }) => {
         setCurrentClientDestination(null);
         setRequestsAccepted([]);
         setRequestsByClients([]);
+        setPendingRequest(null);
+
         setLoading(false);
       }
-
       const waitingRequests = notDoneRequests.filter(
-        (item) => item.status === "PENDING"
+        (item) => item.status === "PENDING" && item.status !== "CANCELLED"
       );
+
+      console.log(JSON.stringify(waitingRequests, null, 3));
       const takenRequests = notDoneRequests.filter(
         (item) => item.status === "TAKEN" || "ARRIVED"
       );
+
+      if (takenRequests.length > 0) {
+        setCurrentClientDestination(takenRequests[0]);
+      }
 
       setRequestsByClients(waitingRequests);
       setRequestsAccepted(takenRequests);
     });
   }, []);
+
+  useEffect(() => {
+    if (requestsByClients.length !== 0) {
+      setPendingRequest(requestsByClients[0]);
+    }
+  }, [requestsByClients]);
 
   const updateUserLocation = (event) => {
     if (isFocused) {
@@ -182,6 +192,14 @@ export const DriverHomeScreen = ({ navigation }) => {
     });
   };
 
+  const turnOnWater = () => {
+    api().changeStateOfWater({ sensorId: "aaa1", value: true });
+  };
+
+  const turnOffWater = () => {
+    api().changeStateOfWater({ sensorId: "aaa1", value: false });
+  };
+
   const setCharging = () => {
     const requestId = currentClientDestination.clientId;
     api().changeRequestStatus(
@@ -197,6 +215,11 @@ export const DriverHomeScreen = ({ navigation }) => {
     await api().changeRequestStatus({ requestId, newStatus: "DONE" });
   };
 
+  const cancellRequest = async () => {
+    const requestId = currentClientDestination.clientId;
+    await api().changeRequestStatus({ requestId, newStatus: "CANCELLED" });
+  };
+
   const fill = async () => {
     setWaterToFilled(waterFilled + 1);
   };
@@ -205,7 +228,6 @@ export const DriverHomeScreen = ({ navigation }) => {
     if (waterFilled >= waterToFill) {
     }
   }, [waterFilled]);
-
 
   useEffect(() => {
     if (isFocused && userLocation) {
@@ -217,146 +239,164 @@ export const DriverHomeScreen = ({ navigation }) => {
   }, [isFocused]);
 
   return (
-    <View>
-      {userLocation &&
-        requestsByClients.length > 0 &&
-        currentClientDestination?.status === sectionList.PENDING &&
-        currentClientDestination && (
-          <ModalX
-            driverCoords={userLocation}
-            clientCoords={requestsByClients[0].clientCoords}
-            request={requestsByClients[0]}
-            isOpen={isOpen}
-            closeModal={closeModal}
-            setRequesToTaken={() =>
-              setRequesToTaken(requestsByClients[0].clientId)
-            }
-          />
-        )}
+    <>
+      <FloatContainer left={10} top={10} position="absolute">
+        <WaterContainer styles={styles.floatWaterBtn} />
+      </FloatContainer>
 
-      {/* Mapa principal -------------------------- */}
-      <MapView
-        initialRegion={userLocation || initialRegion}
-        showsUserLocation={true}
-        onUserLocationChange={updateUserLocation}
-        userLocationUpdateInterval={locationConstants.driverLocationUpdateSpeed}
-        userLocationFastestInterval={locationConstants.driverLocationUpdateSpeed}
-        provider={PROVIDER_GOOGLE}
-        ref={mapRef}
-        style={styles.map}
-      >
-        {userLocation && currentClientDestination && (
-          <>
-            <MapViewDirections
-              strokeWidth={3}
-              origin={{
-                latitude: userLocation.latitude,
-                longitude: userLocation.longitude,
-              }}
-              destination={{
-                latitude: currentClientDestination.clientCoords.latitude,
-                longitude: currentClientDestination.clientCoords.longitude,
-              }}
-              apikey={GOOGLE_MAPS_APIKEY}
+      <View>
+        {userLocation &&
+          requestsByClients.length > 0 &&
+          pendingRequest?.status === sectionList.PENDING &&
+          currentClientDestination && (
+            <ModalX
+              driverCoords={userLocation}
+              clientCoords={pendingRequest.clientCoords}
+              request={pendingRequest}
+              isOpen={isOpen}
+              cancellRequest={cancellRequest}
+              closeModal={closeModal}
+              setRequesToTaken={() => setRequesToTaken(pendingRequest.clientId)}
             />
-
-            <Marker
-              coordinate={{
-                latitude: currentClientDestination.clientCoords.latitude,
-                longitude: currentClientDestination.clientCoords.longitude,
-              }}
-              title={marker.title}
-              image={require("../../assets/bus.png")}
-            />
-          </>
-        )}
-      </MapView>
-
-      {/* Botoom sheet ------------------------------------------ */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.container}
-      >
-        <BottomSheet ref={(ref) => (panelRef.current = ref)}>
-          {hasInternet ? (
-            <>
-              {!currentClientDestination && (
-                <>
-                  <Text style={{ textAlign: "center" }} h4>
-                    Esperando por clientes
-                  </Text>
-                </>
-              )}
-
-              {currentClientDestination && (
-                <>
-                  {currentClientDestination.status ===
-                    sectionList.WAITING_FOR_REQUESTS && (
-                    <Text>Esperando por clientes</Text>
-                  )}
-
-                  {currentClientDestination.status === sectionList.PENDING && (
-                    <>
-                      <Text style={{ textAlign: "center" }} h4>
-                        En proceso de decisión
-                      </Text>
-                    </>
-                  )}
-
-                  {currentClientDestination.status === sectionList.TAKEN && (
-                    <>
-                      <Text>Dirigete hacia la ubicación del cliente</Text>
-                      <Button title={"Llegué"} onPress={setAlreadyArrived} />
-                    </>
-                  )}
-
-                  {currentClientDestination.status === sectionList.ARRIVED && (
-                    <FlexContainer flex_ai_c>
-                      <Text h4>Llenar: {waterToFill} L</Text>
-                      <Text h5>Progreso: {waterFilled}L</Text>
-                      <Button
-                        containerStyle={{ minWidth: "50%", marginTop: 20 }}
-                        title={"Llenar"}
-                        onPress={fill}
-                      />
-                      <Button
-                        containerStyle={{ marginVertical: 10, minWidth: "50%" }}
-                        title={"llenar más"}
-                      />
-                      <Button
-                        containerStyle={{ minWidth: "50%" }}
-                        title={"Cobrar"}
-                        onPress={setCharging}
-                      />
-                    </FlexContainer>
-                  )}
-
-                  {currentClientDestination.status === sectionList.CHARGING && (
-                    <>
-                      <Text style={{ textAlign: "center" }} h4>
-                        Cobrar $200
-                      </Text>
-                      <Button title={"Hecho"} onPress={setRequestFinish} />
-                    </>
-                  )}
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              <Icon name="wifi-off" />
-              <Text style={styles.noInternet}>No hay conexión a internet</Text>
-            </>
           )}
 
-          {Platform.OS === "ios" ? (
-            <View style={{ marginBottom: 40 }}></View>
-          ) : (
-            <View style={{ marginBottom: 20 }}></View>
+        {/* Mapa principal -------------------------- */}
+        <MapView
+          initialRegion={userLocation || initialRegion}
+          showsUserLocation={true}
+          onUserLocationChange={updateUserLocation}
+          userLocationUpdateInterval={
+            locationConstants.driverLocationUpdateSpeed
+          }
+          userLocationFastestInterval={
+            locationConstants.driverLocationUpdateSpeed
+          }
+          provider={PROVIDER_GOOGLE}
+          ref={mapRef}
+          style={styles.map}
+        >
+          {userLocation && currentClientDestination && (
+            <>
+              <MapViewDirections
+                strokeWidth={3}
+                origin={{
+                  latitude: userLocation.latitude,
+                  longitude: userLocation.longitude,
+                }}
+                destination={{
+                  latitude: currentClientDestination.clientCoords.latitude,
+                  longitude: currentClientDestination.clientCoords.longitude,
+                }}
+                apikey={GOOGLE_MAPS_APIKEY}
+              />
+
+              <Marker
+                coordinate={{
+                  latitude: currentClientDestination.clientCoords.latitude,
+                  longitude: currentClientDestination.clientCoords.longitude,
+                }}
+                title={marker.title}
+                image={require("../../assets/bus.png")}
+              />
+            </>
           )}
-        </BottomSheet>
-      </KeyboardAvoidingView>
-    </View>
+        </MapView>
+
+        {/* Botoom sheet ------------------------------------------ */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.container}
+        >
+          <BottomSheet ref={(ref) => (panelRef.current = ref)}>
+            {hasInternet ? (
+              <>
+                {!currentClientDestination && (
+                  <>
+                    <Text style={{ textAlign: "center" }} h4>
+                      Esperando por clientes
+                    </Text>
+                  </>
+                )}
+
+                {currentClientDestination && (
+                  <>
+                    {currentClientDestination.status ===
+                      sectionList.WAITING_FOR_REQUESTS && (
+                      <Text>Esperando por clientes</Text>
+                    )}
+
+                    {currentClientDestination.status ===
+                      sectionList.PENDING && (
+                      <>
+                        <Text style={{ textAlign: "center" }} h4>
+                          En proceso de decisión
+                        </Text>
+                      </>
+                    )}
+
+                    {currentClientDestination.status === sectionList.TAKEN && (
+                      <>
+                        <Text>Dirigete hacia la ubicación del cliente</Text>
+                        <Button title={"Llegué"} onPress={setAlreadyArrived} />
+                      </>
+                    )}
+
+                    {currentClientDestination.status ===
+                      sectionList.ARRIVED && (
+                      <FlexContainer flex_ai_c>
+                        <Text h4>Llenar: {waterToFill} L</Text>
+                        <Text h5>Progreso: {waterFilled}L</Text>
+                        <Button
+                          containerStyle={{ minWidth: "50%", marginTop: 20 }}
+                          title={"Encender"}
+                          onPress={turnOnWater}
+                        />
+                        <Button
+                          containerStyle={{
+                            marginVertical: 10,
+                            minWidth: "50%",
+                          }}
+                          title={"Apagar"}
+                          onPress={turnOffWater}
+                        />
+                        <Button
+                          containerStyle={{ minWidth: "50%" }}
+                          title={"Cobrar"}
+                          onPress={setCharging}
+                        />
+                      </FlexContainer>
+                    )}
+
+                    {currentClientDestination.status ===
+                      sectionList.CHARGING && (
+                      <>
+                        <Text style={{ textAlign: "center" }} h4>
+                          Cobrar $200
+                        </Text>
+                        <Button title={"Hecho"} onPress={setRequestFinish} />
+                      </>
+                    )}
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                <Icon name="wifi-off" />
+                <Text style={styles.noInternet}>
+                  No hay conexión a internet
+                </Text>
+              </>
+            )}
+
+            {Platform.OS === "ios" ? (
+              <View style={{ marginBottom: 40 }}></View>
+            ) : (
+              <View style={{ marginBottom: 20 }}></View>
+            )}
+          </BottomSheet>
+        </KeyboardAvoidingView>
+      </View>
+    </>
   );
 };
 
@@ -364,9 +404,18 @@ const styles = StyleSheet.create({
   map: {
     width: "100%",
     height: "100%",
+    zIndex: -1,
   },
   noInternet: {
     fontSize: 20,
     textAlign: "center",
+  },
+  floatWaterBtn: {
+    position: "absolute",
+    width: 20,
+    height: 20,
+    top: 10,
+    left: 10,
+    zIndex: 10,
   },
 });

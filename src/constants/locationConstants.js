@@ -1,4 +1,4 @@
 export const locationConstants = {
-  driverLocationUpdateSpeed : 1000,
-  clientLocationUpdateSpeed : 2000,
+  driverLocationUpdateSpeed : 3000,
+  clientLocationUpdateSpeed : 4000,
 }
