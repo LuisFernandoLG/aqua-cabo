@@ -70,67 +70,18 @@ export const HomeScreen = ({ navigation }) => {
   const [currentRequest, setCurrentRequest] = useState(null);
   const [expectedTime, setExpectedTime] = useState(0);
   const [expectedDistance, setExpectedDistance] = useState(0);
-  const [isConnected, setIsConnected] = useState("I don't know");
   const { isConnected: isConnectedToInternet } = useContext(netInfoContext);
 
-  const {allTrucks, removeListeners, listenToTrucks} = useFirebase()
+  const { allTrucks, removeListeners, listenToTrucks, listenToRequestChanges } =
+    useFirebase();
 
   const panelRef = useRef(null);
-  const [clientRequestSectionNum, setClientRequestSectionNum] = useState(
-    clientRequests.REQUESTING
-  );
 
-  const isFocused = useIsFocused();
+  let isFocused = useIsFocused();
   let mapRef = useRef(null);
 
-  // Un screen no llama a su clenup después de que se cambia de pantalla, por lo que el ciclo de vida normal de un componente en react native cambia un poco con esta clase de componentes
-  // A su vez, la documentación recomienda usar el hooj useIsFocussed para sabre si está siendo mostrada la patanlla o no
-
-  useEffect(() => {
-    if (isFocused) {
-      api().suscribeToAmIConnected((info) => {
-        setIsConnected(info);
-      });
-    }
-  }, [isFocused]);
-
-  const getActiveTrucks = (array, timeTolerance) => {
-    const newTrucks = [];
-
-    // It cam   be undefined
-    array.forEach((element) => {
-      const now = getTimestampInSeconds();
-      const isOnline = element?.isOnline;
-      let diff = (now - element.lastStatus) / 60000;
-      if (diff <= 0.1 && isOnline) newTrucks.push(element);
-      
-      // console.log({ diff, isOnline });
-    });
-    
-    // movi aqui para que no DESAPARZCECAN las pipas cuando se pierde la conexion
-    return array;
-  };
-
-  const cancellRequest = async () => {
-    const requestId = user.id;
-    await api().changeRequestStatus({ requestId, newStatus: "CANCELLED" });
-  };
-
-  useEffect(()=>{
-    if(allTrucks.length > 0){
-      const newTrucks = getActiveTrucks(allTrucks, 1);
-      setTrucks(newTrucks);
-    }
-  },[allTrucks])
-
-  useEffect(() => {
-    if(!isFocused){
-      removeListeners()
-    }
-
-    listenToTrucks()
-
-    api().suscibeToRequestChanges({ clientId: user.id }, (request) => {
+  const startToListenChanges = () => {
+    listenToRequestChanges({ clientId: user.id }, (request) => {
       if (request?.length === 0) {
         setCurrentRequest(null);
         setIsLoading(false);
@@ -159,13 +110,44 @@ export const HomeScreen = ({ navigation }) => {
         setCurrentRequest(request);
       }
     });
+  };
 
-    ()=>{
-      removeListeners()
+  useEffect(() => {
+    if (isFocused) {
+      listenToTrucks();
+      startToListenChanges();
+    } else {
+      removeListeners();
     }
-
-
   }, [isFocused]);
+
+  const getActiveTrucks = (array, timeTolerance) => {
+    const newTrucks = [];
+
+    array.forEach((element) => {
+      const now = getTimestampInSeconds();
+      const isOnline = element?.isOnline;
+      let diff = (now - element.lastStatus) / 60000;
+      if (diff <= 0.1 && isOnline) newTrucks.push(element);
+
+    });
+
+    return newTrucks;
+  };
+
+  const cancellRequest = async () => {
+    const requestId = user.id;
+    await api().changeRequestStatus({ requestId, newStatus: "CANCELLED" });
+  };
+
+  useEffect(() => {
+    if (allTrucks.length > 0) {
+      const newTrucks = getActiveTrucks(allTrucks, 1);
+      setTrucks(newTrucks);
+    }
+  }, [allTrucks]);
+
+  useEffect(() => {}, [isFocused]);
 
   const saveRequest = async ({ request }) => {
     await api().saveClientRequest({
@@ -197,18 +179,19 @@ export const HomeScreen = ({ navigation }) => {
     if (trucks.length === 0) return showMessage();
     else {
       setIsLoading(true);
-      api().sendRequestToCloserDriver({
-        clientId: user.id,
-        clientCoords: userLocation,
-        waterQuantity: parseInt(water),
-        trucks,
-      }).catch((error)=>{
-        alert(error)
-      });
+      api()
+        .sendRequestToCloserDriver({
+          clientId: user.id,
+          clientCoords: userLocation,
+          waterQuantity: parseInt(water),
+          trucks,
+          user:user
+        })
+        .catch((error) => {
+          alert(error);
+        });
     }
   };
-
-  useEffect(() => {}, [clientRequestSectionNum]);
 
   const relocateView = () => {
     // if (!myLocation) return false;
@@ -235,12 +218,16 @@ export const HomeScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
-    if (userLocation) {
+    if (userLocation && user && isFocused) {
       setTrucks(getActiveTrucks(trucks, 0.5));
-      api().sendClientCoordsToDb({
-        cliendId: user.id,
-        newCoords: userLocation,
-      });
+      api()
+        .sendClientCoordsToDb({
+          cliendId: user.id,
+          newCoords: userLocation,
+        })
+        .catch((error) => {
+          console.log(error);
+        });
     }
   }, [userLocation]);
 
@@ -253,21 +240,19 @@ export const HomeScreen = ({ navigation }) => {
     }
   };
 
-  // *! MEJORAR, A VECES DEJA DE FUNCIONAR, TAL VEZ CUANDO SE ABRA DE NUEVO LA APP NO APREZCA
   useEffect(() => {
     if (trucks && currentRequest) assignTruck();
   }, [currentRequest]);
 
-  const handleClick  = () => {
-    console.log("click")
-  }
+
+
+  if (!isFocused) return null;
 
   return (
     <View>
       <MapView
         style={styles.map}
         initialRegion={region}
-        onPress={handleClick}
         // ref={mapRef}
         // onRegionChange={(region) => setRegion(region)}
         // region={region}
@@ -292,31 +277,29 @@ export const HomeScreen = ({ navigation }) => {
               image={require("../../assets/bus.png")}
             ></Marker>
 
-            {currentRequest
-              ? currentRequest.status !== SectionList.PENDING && (
-                  <MapViewDirections
-                    strokeWidth={3}
-                    origin={{
-                      latitude: userLocation.latitude,
-                      longitude: userLocation.longitude,
-                    }}
-                    destination={{
-                      longitude: truckRequestAccepted.longitude,
-                      latitude: truckRequestAccepted.latitude,
-                    }}
-                    apikey={GOOGLE_MAPS_APIKEY}
-                    onReady={(result) => {
-                      setExpectedDistance(result.distance);
-                      setExpectedTime(result.duration);
-                    }}
-                  />
-                )
-              : null}
+            {currentRequest?.status !== "PENDING" ? (
+              <MapViewDirections
+                strokeWidth={3}
+                origin={{
+                  latitude: userLocation.latitude,
+                  longitude: userLocation.longitude,
+                }}
+                destination={{
+                  longitude: truckRequestAccepted.longitude,
+                  latitude: truckRequestAccepted.latitude,
+                }}
+                apikey={GOOGLE_MAPS_APIKEY}
+                onReady={(result) => {
+                  setExpectedDistance(result.distance);
+                  setExpectedTime(result.duration);
+                }}
+              />
+            ) : null}
           </>
         )}
         {/* {trucks && !truckRequestAccepted && (
           )} */}
-          <AvailableTruckGroup trucks={trucks} />
+        <AvailableTruckGroup trucks={trucks} />
       </MapView>
 
       {/* <ScrollView> */}
@@ -324,77 +307,81 @@ export const HomeScreen = ({ navigation }) => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View style={styles.bsheet}>
-
-        <BottomSheet ref={(ref) => (panelRef.current = ref)}>
-          <Text>{isConnected}</Text>
-          {isConnectedToInternet ? (
-            <FlexContainer pdBottom={50}>
-              {!currentRequest ? (
-                <>
-                  <RequestSheetContent
-                    setSheetSectionToWaiting={requestWater}
-                    isLoading={isLoading}
-                  />
-                </>
-              ) : (
-                <>
-                  {currentRequest.status === sectionList.PENDING && (
-                    <>
-                      <Text style={{ textAlign: "center", marginBottom: 5 }} h4>
-                        Buscando pipa
-                      </Text>
-                      <FlexContainer flex_ai_c>
-                        <Loader />
-                      </FlexContainer>
-                    </>
-                  )}
-
-                  {currentRequest.status === sectionList.TAKEN && (
-                    <WaitingSheetContent
-                      currentRequest={currentRequest}
-                      expectedDistance={expectedDistance}
-                      expectedTime={expectedTime}
-                      cancellRequest={cancellRequest}
+          <BottomSheet ref={(ref) => (panelRef.current = ref)}>
+         
+            {isConnectedToInternet ? (
+              <FlexContainer pdBottom={50}>
+                {!currentRequest ? (
+                  <>
+                    <RequestSheetContent
+                      setSheetSectionToWaiting={requestWater}
+                      isLoading={isLoading}
                     />
-                  )}
+                  </>
+                ) : (
+                  <>
+                    {currentRequest.status === sectionList.PENDING && (
+                      <>
+                        <Text
+                          style={{ textAlign: "center", marginBottom: 5 }}
+                          h4
+                        >
+                          Buscando pipa
+                        </Text>
+                        <FlexContainer flex_ai_c>
+                          <Loader />
+                        </FlexContainer>
+                      </>
+                    )}
 
-                  {currentRequest.status === sectionList.ARRIVED && (
-                    <>
-                      <Text style={{ textAlign: "center" }} h4>
-                        El camión ha llegado
-                      </Text>
-                      <Text style={{ textAlign: "center" }} h5>
-                        Prepara tus contenedores
-                      </Text>
-                    </>
-                  )}
+                    {currentRequest.status === sectionList.TAKEN && (
+                      <WaitingSheetContent
+                        currentRequest={currentRequest}
+                        expectedDistance={expectedDistance}
+                        expectedTime={expectedTime}
+                        cancellRequest={cancellRequest}
+                      />
+                    )}
 
-                  {currentRequest.status === sectionList.CHARGING && (
-                    <>
-                      <Text style={{ textAlign: "center" }} h4>
-                        Por favor pague al chofer
-                      </Text>
-                      <Text style={{ textAlign: "center" }} h4>
-                        $200
-                      </Text>
-                    </>
-                  )}
-                </>
-              )}
-            </FlexContainer>
-          ) : (
-            <>
-              <Icon name="wifi-off" />
-              <Text style={styles.noInternet}>No hay conexión a internet</Text>
-            </>
-          )}
+                    {currentRequest.status === sectionList.ARRIVED && (
+                      <>
+                        <Text style={{ textAlign: "center" }} h4>
+                          El camión ha llegado
+                        </Text>
+                        <Text style={{ textAlign: "center" }} h5>
+                          Prepara tus contenedores
+                        </Text>
+                      </>
+                    )}
 
-          {Platform.OS === "ios" ? (
-            <View style={{ marginBottom: 40 }}></View>
-          ) : (
-            <View style={{ marginBottom: 20 }}></View>
-          )}
-        </BottomSheet>
+                    {currentRequest.status === sectionList.CHARGING && (
+                      <>
+                        <Text style={{ textAlign: "center" }} h4>
+                          Por favor pague al chofer
+                        </Text>
+                        <Text style={{ textAlign: "center" }} h4>
+                          $200
+                        </Text>
+                      </>
+                    )}
+                  </>
+                )}
+              </FlexContainer>
+            ) : (
+              <>
+                <Icon name="wifi-off" />
+                <Text style={styles.noInternet}>
+                  No hay conexión a internet
+                </Text>
+              </>
+            )}
+
+            {Platform.OS === "ios" ? (
+              <View style={{ marginBottom: 40 }}></View>
+            ) : (
+              <View style={{ marginBottom: 20 }}></View>
+            )}
+          </BottomSheet>
         </View>
       </KeyboardAvoidingView>
       {/* </ScrollView> */}
@@ -411,7 +398,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     textAlign: "center",
   },
-  bsheet:{
-    zIndex:100
-  }
+  bsheet: {
+    zIndex: 100,
+  },
 });

@@ -38,7 +38,7 @@ export const Router = () => {
         drawerContent={(props) => <CustomDrawerContent {...props} />}
       >
         <Drawer.Group>
-          {isClient &&(
+     
             <Drawer.Screen
               name="Home"
               options={{
@@ -46,9 +46,19 @@ export const Router = () => {
                 drawerItemStyle: { display: isDriver ? "none" : "flex" },
               }}
               component={HomeScreen}
-            />
-          )}
-          {isDriver && (
+              />
+
+              
+            <Drawer.Screen
+              name="Payment"
+              options={{
+                title: "payment",
+                drawerItemStyle: { display: isDriver ? "none" : "flex" },
+              }}
+              component={Payment}
+              />
+
+              
             <Drawer.Screen
               name="DriverHome"
               options={{
@@ -57,8 +67,7 @@ export const Router = () => {
               }}
               component={DriverHomeScreen}
             />
-          )}
-
+        
           <Drawer.Screen
             name="DriverLogin"
             options={{

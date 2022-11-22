@@ -16,11 +16,10 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
 } from "firebase/auth";
+import { getRandomColor } from "../helpers/getRandomColor";
 
 export const api = () => {
   let listeners = [];
-  // It has a clean up
-
   const sendDriverCoordsToDb = async ({ driverId, newCoords }) => {
     const truck = {
       driverId: driverId,
@@ -37,15 +36,11 @@ export const api = () => {
   };
 
   const sendLastTimestamp = async ({ driverId }) => {
-    // console.log("timstamp--------------------")
-    // try {
-    //   await set(ref(db, "truckLocations/" + driverId + "/timstamp"), serverTimestamp());
-    // } catch (error) {
-    //   console.log({ errorRR: error });
-    // }
+    
   };
 
   const sendClientCoordsToDb = async ({ cliendId, newCoords }) => {
+    if (!cliendId && !newCoords) return false;
     const clientCoords = {
       cliendId: cliendId,
       longitude: newCoords.longitude,
@@ -139,95 +134,87 @@ export const api = () => {
 
   const getTrucksWithEnoughWater = async ({ waterQuantity, trucks }) => {
     return new Promise((resolve, reject) => {
-    
       const reff = ref(db, "clientRequests/");
       onValue(reff, (snapshot) => {
+        const data = snapshot.val() ? snapshot.val() : [];
 
+        const array = Object.values(data);
+        let waterRequestedByTrucks = {};
 
+        array.forEach((item) => {
+          if (item.status === "DONE") return false;
+          let key = item.driverId;
+          let prevValue = waterRequestedByTrucks[item.driverId]
+            ? waterRequestedByTrucks[item.driverId]
+            : 0;
+          waterRequestedByTrucks = {
+            [key]: prevValue + item.waterQuantity,
+          };
+        });
 
-          const data = snapshot.val() ? snapshot.val() : []
-          
-          // console.log({trucks})
+        const trucksWithEnoughWater = trucks.filter((item) => {
+          let truckTotalWaterRequested = waterRequestedByTrucks[item.driverId]
+            ? waterRequestedByTrucks[item.driverId]
+            : 0;
+          let truckTotalWater = item.esp32.litros;
+          let hypoteticalWater = truckTotalWater - truckTotalWaterRequested;
+          return hypoteticalWater >= waterQuantity;
+        });
 
-          const array = Object.values(data);
-          let waterRequestedByTrucks = {}
+        if (trucksWithEnoughWater.length === 0) {
+          reject("No hay camiones con suficiente agua");
+        }
 
-          array.forEach((item) => {
-            if(item.status === "DONE") return false;
-            let key = item.driverId
-            let prevValue = waterRequestedByTrucks[item.driverId] ? waterRequestedByTrucks[item.driverId] : 0
-            waterRequestedByTrucks = {
-              [key]: prevValue + item.waterQuantity
-            }
-          })
-          console.log({waterRequestedByTrucks})
-          
-          const trucksWithEnoughWater = trucks.filter((item) => {
-            let truckTotalWaterRequested = waterRequestedByTrucks[item.driverId] ? waterRequestedByTrucks[item.driverId] : 0
-            let truckTotalWater = item.esp32.litros
-            let hypoteticalWater = truckTotalWater - truckTotalWaterRequested
-            console.log({hypoteticalWater})
-            return hypoteticalWater >= waterQuantity
-          })
-
-          if(trucksWithEnoughWater.length === 0){
-            reject("No hay camiones con suficiente agua")
-          }
-
-          resolve(trucksWithEnoughWater)  
-                  
-        
+        resolve(trucksWithEnoughWater);
       });
-      
-    })  };
+    });
+  };
 
   const sendRequestToCloserDriver = async (
-    { clientId, waterQuantity, clientCoords, trucks },
+    { clientId, waterQuantity, clientCoords, trucks, user },
     cb
   ) => {
     return new Promise(async (resolve, reject) => {
+      getTrucksWithEnoughWater({ trucks, waterQuantity })
+        .then((newTrucks) => {
+          var today = new Date();
+          // obtener la fecha y la hora
+          var now = today.toLocaleString();
 
-      getTrucksWithEnoughWater({trucks, waterQuantity}).then((newTrucks)=>{
-        var today = new Date();
-        // obtener la fecha y la hora
-        var now = today.toLocaleString();
-    
-        const truck = getCloserTruck({ trucks:newTrucks, clientCoords });
-        const request = {
-          clientCoords: clientCoords,
-          clientId: clientId,
-          waterQuantity: waterQuantity,
-          status: "PENDING",
-          driverId: truck.driverId,
-          date: now,
-        };
-    
-        try {
-          set(ref(db, "clientRequests/" + clientId), request).then(()=>{
-            resolve(true)
-          })
-          
-        } catch (error) {
-          console.log({ errorRR: error });
-          reject("Algo salió mal al enviar la solicitud")
-        }
-    
-    
-        }).catch((error)=>{
-          console.log("error", error)
-          reject(error)
+          const truck = getCloserTruck({ trucks: newTrucks, clientCoords });
+          const request = {
+            clientCoords: clientCoords,
+            clientId: clientId,
+            waterQuantity: waterQuantity,
+            status: "PENDING",
+            driverId: truck.driverId,
+            date: now,
+            user,
+            color: getRandomColor()
+          };
+
+          try {
+            set(ref(db, "clientRequests/" + clientId), request).then(() => {
+              resolve(true);
+            });
+          } catch (error) {
+            console.log({ errorRR: error });
+            reject("Algo salió mal al enviar la solicitud");
+          }
         })
-
-    })
+        .catch((error) => {
+          console.log("error", error);
+          reject(error);
+        });
+    });
     // console.log({trucks})
     // obtener sumatoria del agua de los pedidos
-    
+
     // obtener el agua total del camion
 
     // verificar si el camion tiene agua suficiente
 
     // si tiene agua suficiente, enviar el pedido
-
   };
 
   const suscibeToRequestChanges = ({ clientId }, cb) => {
@@ -341,8 +328,8 @@ export const api = () => {
     set(reff, false);
   };
 
-  const changeStateOfWater = ({ sensorId, value }) => {
-    const reff = ref(db, "valvula/" + sensorId + "/isOpen");
+  const changeStateOfWater = ({ userId, value }) => {
+    const reff = ref(db, "truckLocations/" + userId + "/esp32/isOpen");
     set(reff, value);
   };
 
@@ -357,14 +344,15 @@ export const api = () => {
     });
   };
 
-  const suscribeToWaterLevel = (idSensor, cb) => {
-    const connectedRef = ref(db, `valvula/${idSensor}/nivel`);
+  const suscribeToWaterLevel = (id, cb) => {
+    const url = `truckLocations/${id}/esp32/litros`
+    const connectedRef = ref(db, url);
     onValue(connectedRef, (snap) => {
       if (snap.exists()) {
         const data = snap.val();
         cb(data);
       } else {
-        cb("No existe");
+        cb("???");
       }
     });
   };
@@ -403,7 +391,6 @@ const orderByDistances = (array) => {
 };
 
 const getCloserTruck = ({ trucks, clientCoords }) => {
-  console.log({trucks})
   try {
     const distances = trucks.map((truck) => {
       return {

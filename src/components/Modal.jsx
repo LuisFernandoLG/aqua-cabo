@@ -1,11 +1,13 @@
 import React, { useState } from "react";
-import { Alert, Modal, StyleSheet, Text, Pressable, View } from "react-native";
+import { Alert, Modal, StyleSheet, Pressable, View } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { FlexContainer } from "./FlexContainer";
 import { GOOGLE_MAPS_APIKEY } from "@env";
 import MapViewDirections from "react-native-maps-directions";
 import { getRegionForCoordinates } from "../helpers/getRegionForCoordinates";
 import { locationConstants } from "../constants/locationConstants";
+import { Button } from "@rneui/base";
+import { Text } from "@rneui/themed";
 
 const answers = {
   YES: "YES",
@@ -56,7 +58,12 @@ export const ModalX = ({
         }}
       >
         <View style={styles.centeredView}>
-          <View style={styles.modalView}>
+          <View
+            style={{
+              ...styles.modalView,
+              backgroundColor: request?.color || "#000000",
+            }}
+          >
             {/*  ------------- */}
             <MapView
               style={styles.miniMap}
@@ -98,30 +105,24 @@ export const ModalX = ({
 
             {/* --------------------- */}
             <FlexContainer flex_direction_r>
-              <Pressable
-                style={[styles.button, styles.buttonClose]}
+              <Button
                 onPress={() => setRequesToTaken(request.id)}
-              >
-                <Text style={styles.textStyle}>Aceptar</Text>
-              </Pressable>
+                title={"Aceptar"}
+              ></Button>
 
-              <Pressable
-                style={[styles.button, styles.buttonClose]}
+              <Button
+                color={"error"}
                 onPress={cancellRequest}
-              >
-                <Text style={styles.textStyle}>Rechazar</Text>
-              </Pressable>
+                title="Rechazar"
+              ></Button>
             </FlexContainer>
-            <Text>Cantidad: {request.waterQuantity}L</Text>
+            <Text style={styles.waterCount}>{request.user.name}</Text>
+            <Text style={styles.waterCount}>
+              Cantidad: {request.waterQuantity}L
+            </Text>
           </View>
         </View>
       </Modal>
-      <Pressable
-        style={[styles.button, styles.buttonOpen]}
-        onPress={() => setModalVisible(true)}
-      >
-        <Text style={styles.textStyle}>Show Modal</Text>
-      </Pressable>
     </View>
   );
 };
@@ -134,8 +135,6 @@ const styles = StyleSheet.create({
   },
   modalView: {
     margin: 20,
-
-    backgroundColor: "#2196F3",
     borderRadius: 10,
     padding: 15,
     alignItems: "center",
@@ -149,15 +148,14 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   button: {
-    borderRadius: 20,
-    padding: 10,
-    elevation: 2,
+    // borderRadius: 12,
+    marginRight: 10,
   },
   buttonOpen: {
     backgroundColor: "#F194FF",
   },
   buttonClose: {
-    backgroundColor: "#2196F3",
+    backgroundColor: "#F194FF",
   },
   textStyle: {
     color: "white",
@@ -168,9 +166,14 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     textAlign: "center",
   },
-
+  waterCount: {
+    backgroundColor: "#fff",
+    borderRadius: 5,
+    padding: 5,
+    fontWeight: "bold",
+  },
   miniMap: {
     width: "100%",
-    height: "100%",
+    height: "95%",
   },
 });

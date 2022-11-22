@@ -1,6 +1,6 @@
+import { db } from "../../database/firebase2"
 import { off, onValue, ref } from "firebase/database"
 import { useState } from "react"
-import { db } from "../../database/firebase2"
 
 export const useFirebase = () => {
   const [listeners, setListeners] = useState([])
@@ -8,30 +8,53 @@ export const useFirebase = () => {
 
   const listenToTrucks = (callback) => {
     const truckLocationsRef = ref(db, "truckLocations");
-    const listenerRefernce = onValue(truckLocationsRef, (snapshot) => {
+    const unsuscribe = onValue(truckLocationsRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
         const array = Object.values(data);
-        console.log("-----------------------")
-        console.log(array)
         setAllTrucks(array);
       } else {
         setAllTrucks([]);
       }
     });
     
-    setListeners([...listeners, listenerRefernce])
+    setListeners([...listeners, unsuscribe])
   }
+
+  const listenToRequestChanges = ({ clientId }, cb) => {
+    console.log("listenToRequestChanges")
+    const clientRequestsRef = ref(db, "clientRequests");
+    const unsuscribe = onValue(clientRequestsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const array = Object.values(data);
+        const requestFound = array.find((item) => item.clientId === clientId);
+        if (requestFound) {
+          cb(requestFound);
+        } else {
+          cb([]);
+        }
+      } else {
+        cb([]);
+      }
+    });
+
+    setListeners([...listeners, unsuscribe])
+  };
 
   const removeListeners = ()=>{
     console.log("LIMPIANDO LISTENERS")
-    listeners.forEach(listener => off(listener))
+    listeners.forEach(listener => {
+      console.log("LISTENER REMOVED")
+      listener()
+    })
     setListeners([])
   }
 
   return {
     removeListeners,
     allTrucks,
-    listenToTrucks
+    listenToTrucks,
+    listenToRequestChanges
   }
 }

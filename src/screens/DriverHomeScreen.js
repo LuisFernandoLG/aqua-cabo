@@ -20,6 +20,7 @@ import { Icon } from "@rneui/base";
 import { locationConstants } from "../constants/locationConstants";
 import { WaterContainer } from "../components/WaterContainer";
 import { FloatContainer } from "../components/FloatContainer";
+import { useDriver } from "../hooks/useDriver";
 
 const initialRegion = {
   latitude: 22.945646,
@@ -66,11 +67,13 @@ export const DriverHomeScreen = ({ navigation }) => {
   const mapRef = useRef(null);
   const { isConnected: hasInternet } = useContext(netInfoContext);
 
+  const { suscribeToWatchClientRequests, removeListeners } = useDriver();
+  const panelRef = useRef(null);
+
   useEffect(() => {
     if (isFocused) {
       api().suscribeToAmIConnected((_isConnected) => {
         if (_isConnected) {
-          console.log("Asignando destructor");
           api().setOfflineOnDisconnect({ driverId: user.id }, () => {});
           setIsConnected("sí conectado");
         } else {
@@ -80,11 +83,6 @@ export const DriverHomeScreen = ({ navigation }) => {
     } else {
     }
   }, [isFocused]);
-
-  useEffect(() => {
-    if (pendingRequest && userLocation) {
-    }
-  }, [userLocation, requestsAccepted]);
 
   const formatCurretRegion = (dest) => {
     const points = [
@@ -102,15 +100,6 @@ export const DriverHomeScreen = ({ navigation }) => {
     return getRegionForCoordinates(points);
   };
 
-  // Un screen no llama a su clenup después de que se cambia de pantalla, por lo que el ciclo de vida normal de un componente en react native cambia un poco con esta clase de componentes
-  // A su vez, la documentación recomienda usar el hooj useIsFocussed para sabre si está siendo mostrada la patanlla o no
-  // useEffect(() => {
-  //   if (isFocused) suscribeOnSharingLocation();
-  //   else unsuscribeOnSharingLocation();
-  // }, [isFocused]);
-
-  const panelRef = useRef(null);
-
   const sendCurrentLocationToDb = async () => {
     if (!user) return false;
     api().sendDriverCoordsToDb({
@@ -125,17 +114,14 @@ export const DriverHomeScreen = ({ navigation }) => {
 
   // CADA VEZ QUE LA UBUCACION CAMBIÉ
   useEffect(() => {
-    if (userLocation) {
-      if (isFocused) {
-        // Update and animate to show between two points
-        sendCurrentLocationToDb();
-      }
-    }
+    if (userLocation && isFocused && hasInternet) sendCurrentLocationToDb();
   }, [userLocation]);
 
-  useEffect(() => {
-    api().suscribeToWatchClientRequests({ driverId: user.id }, (requests) => {
-      const notDoneRequests = requests.filter((item) => item.status !== "DONE");
+  const startToListenToRequestChanges = () => {
+    suscribeToWatchClientRequests({ driverId: user.id }, (requests) => {
+      const notDoneRequests = requests.filter(
+        (item) => item.status !== "DONE" && item.status !== "CANCELLED"
+      );
       if (notDoneRequests.length === 0) {
         setCurrentClientDestination(null);
         setRequestsAccepted([]);
@@ -145,7 +131,7 @@ export const DriverHomeScreen = ({ navigation }) => {
         setLoading(false);
       }
       const waitingRequests = notDoneRequests.filter(
-        (item) => item.status === "PENDING" && item.status !== "CANCELLED"
+        (item) => item.status === "PENDING"
       );
 
       console.log(JSON.stringify(waitingRequests, null, 3));
@@ -157,10 +143,25 @@ export const DriverHomeScreen = ({ navigation }) => {
         setCurrentClientDestination(takenRequests[0]);
       }
 
-      setRequestsByClients(waitingRequests);
-      setRequestsAccepted(takenRequests);
+      const sortedPending = waitingRequests.sort(
+        (a, b) => a.clientCoords.timestamp - b.clientCoords.timestamp
+      );
+      const sortedAccepted = takenRequests.sort(
+        (a, b) => a.clientCoords.timestamp - b.clientCoords.timestamp
+      );
+
+      setRequestsByClients(sortedPending);
+      setRequestsAccepted(sortedAccepted);
     });
-  }, []);
+  };
+
+  useEffect(() => {
+    if (isFocused) {
+      startToListenToRequestChanges();
+    } else {
+      removeListeners();
+    }
+  }, [isFocused]);
 
   useEffect(() => {
     if (requestsByClients.length !== 0) {
@@ -193,11 +194,11 @@ export const DriverHomeScreen = ({ navigation }) => {
   };
 
   const turnOnWater = () => {
-    api().changeStateOfWater({ sensorId: "aaa1", value: true });
+    api().changeStateOfWater({ userId:user.id, value: true });
   };
 
   const turnOffWater = () => {
-    api().changeStateOfWater({ sensorId: "aaa1", value: false });
+    api().changeStateOfWater({ userId:user.id, value: false });
   };
 
   const setCharging = () => {
@@ -216,7 +217,7 @@ export const DriverHomeScreen = ({ navigation }) => {
   };
 
   const cancellRequest = async () => {
-    const requestId = currentClientDestination.clientId;
+    const requestId = pendingRequest.clientId;
     await api().changeRequestStatus({ requestId, newStatus: "CANCELLED" });
   };
 
@@ -238,6 +239,7 @@ export const DriverHomeScreen = ({ navigation }) => {
     }
   }, [isFocused]);
 
+
   return (
     <>
       <FloatContainer left={10} top={10} position="absolute">
@@ -248,7 +250,8 @@ export const DriverHomeScreen = ({ navigation }) => {
         {userLocation &&
           requestsByClients.length > 0 &&
           pendingRequest?.status === sectionList.PENDING &&
-          currentClientDestination && (
+          currentClientDestination &&
+          hasInternet && (
             <ModalX
               driverCoords={userLocation}
               clientCoords={pendingRequest.clientCoords}
@@ -275,7 +278,7 @@ export const DriverHomeScreen = ({ navigation }) => {
           ref={mapRef}
           style={styles.map}
         >
-          {userLocation && currentClientDestination && (
+          {userLocation && hasInternet && currentClientDestination && (
             <>
               <MapViewDirections
                 strokeWidth={3}
@@ -308,6 +311,7 @@ export const DriverHomeScreen = ({ navigation }) => {
           style={styles.container}
         >
           <BottomSheet ref={(ref) => (panelRef.current = ref)}>
+            {pendingRequest && <></>}
             {hasInternet ? (
               <>
                 {!currentClientDestination && (
@@ -331,6 +335,9 @@ export const DriverHomeScreen = ({ navigation }) => {
                         <Text style={{ textAlign: "center" }} h4>
                           En proceso de decisión
                         </Text>
+                          <Text  style={{ textAlign: "center" }} h5>
+                            {pendingRequest?.user?.name} solicitda agua
+                          </Text>
                       </>
                     )}
 
