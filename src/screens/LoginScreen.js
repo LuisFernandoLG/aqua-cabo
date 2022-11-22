@@ -84,7 +84,7 @@ export const LoginScreen = () => {
               keyboardType="email-address"
               placeholder="Correo"
               value={email}
-              onChangeText={(value) => setEmail(value)}
+              onChangeText={(value) => setEmail(value.trim())}
             />
 
             <Input

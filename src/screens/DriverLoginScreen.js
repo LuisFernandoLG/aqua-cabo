@@ -104,13 +104,6 @@ export const DriverLoginScreen = () => {
                 loading={isLoading}
               />
 
-              <Button
-                title="Registrarse"
-                titleStyle={{ color: "black" }}
-                onPress={goToSignUpScreen}
-                buttonStyle={{ backgroundColor: "rgba(244, 244, 244, 1)" }}
-                containerStyle={styles.middleBtn}
-              />
 
               <Button
                 title="Soy Cliente"
