@@ -175,7 +175,8 @@ export const HomeScreen = ({ navigation }) => {
       );
     });
 
-  const requestWater = async (water) => {
+  const requestWater = async (water, total) => {
+    console.log({water, total, x:"-----------------------"})
     if (trucks.length === 0) return showMessage();
     else {
       setIsLoading(true);
@@ -185,6 +186,7 @@ export const HomeScreen = ({ navigation }) => {
           clientCoords: userLocation,
           waterQuantity: parseInt(water),
           trucks,
+          total,
           user:user
         })
         .catch((error) => {
@@ -360,7 +362,7 @@ export const HomeScreen = ({ navigation }) => {
                           Por favor pague al chofer
                         </Text>
                         <Text style={{ textAlign: "center" }} h4>
-                          $200
+                          ${currentRequest.total}
                         </Text>
                       </>
                     )}

@@ -171,7 +171,7 @@ export const api = () => {
   };
 
   const sendRequestToCloserDriver = async (
-    { clientId, waterQuantity, clientCoords, trucks, user },
+    { clientId, waterQuantity, clientCoords, trucks, user, total },
     cb
   ) => {
     return new Promise(async (resolve, reject) => {
@@ -190,6 +190,7 @@ export const api = () => {
             driverId: truck.driverId,
             date: now,
             user,
+            total,
             color: getRandomColor()
           };
 
@@ -357,6 +358,17 @@ export const api = () => {
     });
   };
 
+  const getPriceLt = (cb)=> {
+    const connectedRef = ref(db, "waterCostByLt");
+    onValue(connectedRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.val();
+        cb(data);
+      } else {
+        reject(false);
+      }
+    });}
+
   return {
     sendDriverCoordsToDb,
     registerClient,
@@ -378,6 +390,7 @@ export const api = () => {
     setOffline,
     suscribeToWaterLevel,
     changeStateOfWater,
+    getPriceLt
   };
 };
 

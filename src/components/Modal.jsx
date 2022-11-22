@@ -120,6 +120,9 @@ export const ModalX = ({
             <Text style={styles.waterCount}>
               Cantidad: {request.waterQuantity}L
             </Text>
+            <Text style={styles.waterCount}>
+              Total: ${request.total}
+            </Text>
           </View>
         </View>
       </Modal>
@@ -174,6 +177,6 @@ const styles = StyleSheet.create({
   },
   miniMap: {
     width: "100%",
-    height: "95%",
+    height: "85%",
   },
 });

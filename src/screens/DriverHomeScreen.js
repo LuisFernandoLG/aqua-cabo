@@ -378,7 +378,7 @@ export const DriverHomeScreen = ({ navigation }) => {
                       sectionList.CHARGING && (
                       <>
                         <Text style={{ textAlign: "center" }} h4>
-                          Cobrar $200
+                          Cobrar ${pendingRequest?.total}
                         </Text>
                         <Button title={"Hecho"} onPress={setRequestFinish} />
                       </>
