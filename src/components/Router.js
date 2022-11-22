@@ -36,6 +36,7 @@ export const Router = () => {
       <Drawer.Navigator
         initialRouteName="login"
         drawerContent={(props) => <CustomDrawerContent {...props} />}
+        backBehavior="history"
       >
         <Drawer.Group>
      
