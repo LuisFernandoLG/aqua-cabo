@@ -8,9 +8,9 @@ import { StatusBar } from "expo-status-bar";
 import * as Location from "expo-location";
 import { useEffect } from "react";
 import { NetInfoProvider } from "./src/contexts/NetInfoContext";
-import Payment from "./src/components/Payment";
 import { StripeProvider } from "@stripe/stripe-react-native";
 let times = 0;
+import { STRIPE_SECRET_KEY } from "@env";
 
 export default function App() {
   const AsyncAlert = async () =>
@@ -55,7 +55,7 @@ export default function App() {
   }, []);
 
   return (
-    <StripeProvider publishableKey="pk_test_51M36NyLKg9gZj3mPs7n31ep6VG1PhB3kAF1Hl6XdCy59D8lKKhsNy7SPCSV5PBpa86CcJ1u67GugA8WVrTHhcWxO00xey4AG2N">
+    <StripeProvider publishableKey={STRIPE_SECRET_KEY}>
       <AuthProvider>
         <NetInfoProvider>
           <StatusBar />
