@@ -12,7 +12,6 @@ import { CustomDrawerContent } from "./CustomDrawer";
 import { DefaultTheme } from "@react-navigation/native";
 import { HomeScreen } from "../screens/HomeScreen";
 import { SignUpDriverScreen } from "../screens/SignUpDriverScreen";
-import Payment from "./Payment";
 
 export const Router = () => {
   const Drawer = createDrawerNavigator();
@@ -28,8 +27,6 @@ export const Router = () => {
 
   const isDriver = user?.type === "DRIVER";
   const isClient = user?.type === "CLIENT";
-
-  console.log({user, isDriver, isClient, isLogged})
 
   return (
     <NavigationContainer theme={MyTheme}>
@@ -50,16 +47,7 @@ export const Router = () => {
               />
 
               
-            <Drawer.Screen
-              name="Payment"
-              options={{
-                title: "payment",
-                drawerItemStyle: { display: isDriver ? "none" : "flex" },
-              }}
-              component={Payment}
-              />
-
-              
+           
             <Drawer.Screen
               name="DriverHome"
               options={{

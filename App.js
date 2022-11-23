@@ -8,9 +8,7 @@ import { StatusBar } from "expo-status-bar";
 import * as Location from "expo-location";
 import { useEffect } from "react";
 import { NetInfoProvider } from "./src/contexts/NetInfoContext";
-import { StripeProvider } from "@stripe/stripe-react-native";
 let times = 0;
-import { STRIPE_SECRET_KEY } from "@env";
 
 export default function App() {
   const AsyncAlert = async () =>
@@ -55,7 +53,6 @@ export default function App() {
   }, []);
 
   return (
-    <StripeProvider publishableKey={STRIPE_SECRET_KEY}>
       <AuthProvider>
         <NetInfoProvider>
           <StatusBar />
@@ -64,7 +61,6 @@ export default function App() {
           </View>
         </NetInfoProvider>
       </AuthProvider>
-    </StripeProvider>
   );
 }
 
