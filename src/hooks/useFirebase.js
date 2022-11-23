@@ -5,6 +5,7 @@ import { useState } from "react"
 export const useFirebase = () => {
   const [listeners, setListeners] = useState([])
   const [allTrucks, setAllTrucks] = useState([])
+  const [loading, setLoading] = useState(false)
 
   const listenToTrucks = (callback) => {
     const truckLocationsRef = ref(db, "truckLocations");
@@ -22,10 +23,10 @@ export const useFirebase = () => {
   }
 
   const listenToRequestChanges = ({ clientId }, cb) => {
-    console.log("listenToRequestChanges")
+
     const clientRequestsRef = ref(db, "clientRequests");
     const unsuscribe = onValue(clientRequestsRef, (snapshot) => {
-      if (snapshot.exists()) {
+        if (snapshot.exists()) {
         const data = snapshot.val();
         const array = Object.values(data);
         const requestFound = array.find((item) => item.clientId === clientId);
@@ -55,6 +56,7 @@ export const useFirebase = () => {
     removeListeners,
     allTrucks,
     listenToTrucks,
-    listenToRequestChanges
+    listenToRequestChanges,
+    loading
   }
 }

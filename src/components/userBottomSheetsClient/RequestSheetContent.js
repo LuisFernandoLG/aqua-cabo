@@ -9,12 +9,14 @@ import { FlexContainer } from "../FlexContainer";
 
 export const RequestSheetContent = ({
   setSheetSectionToWaiting,
-  isLoading,
 }) => {
   const [ltValue, setLtVale] = useState(0);
   const inputRef = useRef(null);
+  const [loading, setLoading] = useState(false);
+
 
   const handleDefaultLiters = (litros) => {
+    setLoading(true)
     AsyncAlert(litros)
       .then(({litros, total}) => {
         console.log({litros,  total, y:"-------------------"})
@@ -22,6 +24,8 @@ export const RequestSheetContent = ({
       })
       .catch((e) => {
         console.log({ e });
+      }).finally(()=>{
+        setLoading(false)
       });
   };
 
@@ -56,6 +60,7 @@ export const RequestSheetContent = ({
     
 
   const handleOnClick = () => {
+    setLoading(true);
     if (ltValue.trim() === "") return alert("Ingrese un valor válido");
     if (ltValue === "0") return alert("Por favor ingrese una cantidad válida");
     AsyncAlert(ltValue)
@@ -64,7 +69,7 @@ export const RequestSheetContent = ({
       })
       .catch((e) => {
         console.log({ e });
-      });
+      }).finally(()=>setLoading(false));
   };
 
   return (
@@ -81,18 +86,21 @@ export const RequestSheetContent = ({
             type="outline"
             title={"1000L"}
             onPress={() => handleDefaultLiters(1000)}
+            loading={loading}
           />
           <Button
             containerStyle={styles.btnWater}
             type="outline"
             title={"2000L"}
             onPress={() => handleDefaultLiters(2000)}
+            loading={loading}
           />
           <Button
             containerStyle={styles.btnWater}
             type="outline"
             title={"3000L"}
             onPress={() => handleDefaultLiters(3000)}
+            loading={loading}
           />
         </FlexContainer>
         <FlexContainer flex_ai_c flex_direction_r flex_jc_c>
@@ -101,12 +109,14 @@ export const RequestSheetContent = ({
             type="outline"
             title={"4000L"}
             onPress={() => handleDefaultLiters(4000)}
+            loading={loading}
           />
           <Button
             containerStyle={styles.btnWater}
             type="outline"
             title={"5000L"}
             onPress={() => handleDefaultLiters(5000)}
+            loading={loading}
           />
         </FlexContainer>
       </FlexContainer>
@@ -124,7 +134,7 @@ export const RequestSheetContent = ({
       </View>
 
       <FlexContainer flex_ai_c>
-        <Button title="Solicitar pedido" onPress={handleOnClick}>
+        <Button title="Solicitar pedido" onPress={handleOnClick} loading={loading}>
           Solicitar pedido
           <Icon name="send" style={{ marginLeft: 10 }} color={"white"} />
         </Button>

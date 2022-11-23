@@ -1,6 +1,4 @@
 import { KeyboardAvoidingView, StyleSheet, View } from "react-native";
-import BottomSheet from "react-native-simple-bottom-sheet";
-
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { FlexContainer } from "../components/FlexContainer";
 import { useEffect, useRef, useState } from "react";
@@ -24,6 +22,10 @@ import { Loader } from "../components/Loader";
 import { locationConstants } from "../constants/locationConstants";
 import { SectionList } from "react-native";
 import { useFirebase } from "../hooks/useFirebase";
+
+import { useHeaderHeight } from "@react-navigation/elements";
+import { ScrollView } from "react-native-gesture-handler";
+// ...
 
 const sectionList = {
   PENDING: "PENDING",
@@ -60,7 +62,9 @@ const clientRequests = {
 const initialTrucks = [];
 const initialUserLocation = {};
 
-export const HomeScreen = ({ navigation }) => {
+export const HomeScreen = () => {
+  const headerHeight = useHeaderHeight();
+
   const [region, setRegion] = useState(initialRegion);
   const [userLocation, setUserLocation] = useState(initialUserLocation);
   const [isLoading, setIsLoading] = useState(false);
@@ -129,7 +133,6 @@ export const HomeScreen = ({ navigation }) => {
       const isOnline = element?.isOnline;
       let diff = (now - element.lastStatus) / 60000;
       if (diff <= 0.1 && isOnline) newTrucks.push(element);
-
     });
 
     return newTrucks;
@@ -176,7 +179,6 @@ export const HomeScreen = ({ navigation }) => {
     });
 
   const requestWater = async (water, total) => {
-    console.log({water, total, x:"-----------------------"})
     if (trucks.length === 0) return showMessage();
     else {
       setIsLoading(true);
@@ -187,7 +189,7 @@ export const HomeScreen = ({ navigation }) => {
           waterQuantity: parseInt(water),
           trucks,
           total,
-          user:user
+          user: user,
         })
         .catch((error) => {
           alert(error);
@@ -246,14 +248,12 @@ export const HomeScreen = ({ navigation }) => {
     if (trucks && currentRequest) assignTruck();
   }, [currentRequest]);
 
-
-
   if (!isFocused) return null;
 
   return (
     <View>
       <MapView
-        style={styles.map}
+        style={[styles.map, { marginTop: 0 }]}
         initialRegion={region}
         // ref={mapRef}
         // onRegionChange={(region) => setRegion(region)}
@@ -308,11 +308,10 @@ export const HomeScreen = ({ navigation }) => {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <View style={styles.bsheet}>
-          <BottomSheet ref={(ref) => (panelRef.current = ref)}>
-         
+        <ScrollView>
+          <View style={styles.bsheet}>
             {isConnectedToInternet ? (
-              <FlexContainer pdBottom={50}>
+              <FlexContainer>
                 {!currentRequest ? (
                   <>
                     <RequestSheetContent
@@ -383,10 +382,9 @@ export const HomeScreen = ({ navigation }) => {
             ) : (
               <View style={{ marginBottom: 20 }}></View>
             )}
-          </BottomSheet>
-        </View>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
-      {/* </ScrollView> */}
     </View>
   );
 };
@@ -394,13 +392,16 @@ export const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   map: {
     width: "100%",
-    height: "100%",
+    maxHeight: "50%",
+    height: "50%",
   },
   noInternet: {
     fontSize: 20,
     textAlign: "center",
   },
   bsheet: {
-    zIndex: 100,
+    flexGrow:1,
+    flex:1,
+    padding: 20,
   },
 });

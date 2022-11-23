@@ -21,6 +21,7 @@ import { locationConstants } from "../constants/locationConstants";
 import { WaterContainer } from "../components/WaterContainer";
 import { FloatContainer } from "../components/FloatContainer";
 import { useDriver } from "../hooks/useDriver";
+import { ScrollView } from "react-native-gesture-handler";
 
 const initialRegion = {
   latitude: 22.945646,
@@ -194,11 +195,11 @@ export const DriverHomeScreen = ({ navigation }) => {
   };
 
   const turnOnWater = () => {
-    api().changeStateOfWater({ userId:user.id, value: true });
+    api().changeStateOfWater({ userId: user.id, value: true });
   };
 
   const turnOffWater = () => {
-    api().changeStateOfWater({ userId:user.id, value: false });
+    api().changeStateOfWater({ userId: user.id, value: false });
   };
 
   const setCharging = () => {
@@ -238,7 +239,6 @@ export const DriverHomeScreen = ({ navigation }) => {
       );
     }
   }, [isFocused]);
-
 
   return (
     <>
@@ -306,101 +306,108 @@ export const DriverHomeScreen = ({ navigation }) => {
         </MapView>
 
         {/* Botoom sheet ------------------------------------------ */}
+
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.container}
         >
-          <BottomSheet ref={(ref) => (panelRef.current = ref)}>
-            {pendingRequest && <></>}
-            {hasInternet ? (
-              <>
-                {!currentClientDestination && (
-                  <>
-                    <Text style={{ textAlign: "center" }} h4>
-                      Esperando por clientes
-                    </Text>
-                  </>
-                )}
+          <ScrollView>
+            <View style={styles.bsheet}>
+              {pendingRequest && <></>}
+              {hasInternet ? (
+                <>
+                  {!currentClientDestination && (
+                    <>
+                      <Text style={{ textAlign: "center" }} h4>
+                        Esperando por clientes
+                      </Text>
+                    </>
+                  )}
 
-                {currentClientDestination && (
-                  <>
-                    {currentClientDestination.status ===
-                      sectionList.WAITING_FOR_REQUESTS && (
-                      <Text>Esperando por clientes</Text>
-                    )}
+                  {currentClientDestination && (
+                    <>
+                      {currentClientDestination.status ===
+                        sectionList.WAITING_FOR_REQUESTS && (
+                        <Text>Esperando por clientes</Text>
+                      )}
 
-                    {currentClientDestination.status ===
-                      sectionList.PENDING && (
-                      <>
-                        <Text style={{ textAlign: "center" }} h4>
-                          En proceso de decisión
-                        </Text>
-                          <Text  style={{ textAlign: "center" }} h5>
+                      {currentClientDestination.status ===
+                        sectionList.PENDING && (
+                        <>
+                          <Text style={{ textAlign: "center" }} h4>
+                            En proceso de decisión
+                          </Text>
+                          <Text style={{ textAlign: "center" }} h5>
                             {pendingRequest?.user?.name} solicitda agua
                           </Text>
-                      </>
-                    )}
+                        </>
+                      )}
 
-                    {currentClientDestination.status === sectionList.TAKEN && (
-                      <>
-                        <Text>Dirigete hacia la ubicación del cliente</Text>
-                        <Button title={"Llegué"} onPress={setAlreadyArrived} />
-                      </>
-                    )}
+                      {currentClientDestination.status ===
+                        sectionList.TAKEN && (
+                        <>
+                          <Text>Dirigete hacia la ubicación del cliente</Text>
+                          <Button
+                            title={"Llegué"}
+                            onPress={setAlreadyArrived}
+                          />
+                        </>
+                      )}
 
-                    {currentClientDestination.status ===
-                      sectionList.ARRIVED && (
-                      <FlexContainer flex_ai_c>
-                        <Text h4>Llenar: {waterToFill} L</Text>
-                        <Text h5>Progreso: {waterFilled}L</Text>
-                        <Button
-                          containerStyle={{ minWidth: "50%", marginTop: 20 }}
-                          title={"Encender"}
-                          onPress={turnOnWater}
-                        />
-                        <Button
-                          containerStyle={{
-                            marginVertical: 10,
-                            minWidth: "50%",
-                          }}
-                          title={"Apagar"}
-                          onPress={turnOffWater}
-                        />
-                        <Button
-                          containerStyle={{ minWidth: "50%" }}
-                          title={"Cobrar"}
-                          onPress={setCharging}
-                        />
-                      </FlexContainer>
-                    )}
+                      {currentClientDestination.status ===
+                        sectionList.ARRIVED && (
+                        <FlexContainer flex_ai_c>
+                          <Text h4>Llenar: {waterToFill} L</Text>
+                          <Text h5>Progreso: {waterFilled}L</Text>
+                          <Button
+                            containerStyle={{ minWidth: "50%", marginTop: 20 }}
+                            title={"Encender"}
+                            onPress={turnOnWater}
+                          />
+                          <Button
+                            containerStyle={{
+                              marginVertical: 10,
+                              minWidth: "50%",
+                            }}
+                            title={"Apagar"}
+                            onPress={turnOffWater}
+                          />
+                          <Button
+                            containerStyle={{ minWidth: "50%" }}
+                            title={"Cobrar"}
+                            onPress={setCharging}
+                          />
+                        </FlexContainer>
+                      )}
 
-                    {currentClientDestination.status ===
-                      sectionList.CHARGING && (
-                      <>
-                        <Text style={{ textAlign: "center" }} h4>
-                          Cobrar ${pendingRequest?.total}
-                        </Text>
-                        <Button title={"Hecho"} onPress={setRequestFinish} />
-                      </>
-                    )}
-                  </>
-                )}
-              </>
-            ) : (
-              <>
-                <Icon name="wifi-off" />
-                <Text style={styles.noInternet}>
-                  No hay conexión a internet
-                </Text>
-              </>
-            )}
+                      {currentClientDestination.status ===
+                        sectionList.CHARGING && (
+                        <>
+                          <Text style={{ textAlign: "center" }} h4>
+                            Cobrar ${pendingRequest?.total}
+                          </Text>
+                          <Button title={"Hecho"} onPress={setRequestFinish} />
+                        </>
+                      )}
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Icon name="wifi-off" />
+                  <Text style={styles.noInternet}>
+                    No hay conexión a internet
+                  </Text>
+                </>
+              )}
 
-            {Platform.OS === "ios" ? (
-              <View style={{ marginBottom: 40 }}></View>
-            ) : (
-              <View style={{ marginBottom: 20 }}></View>
-            )}
-          </BottomSheet>
+              {Platform.OS === "ios" ? (
+                <View style={{ marginBottom: 40 }}></View>
+              ) : (
+                <View style={{ marginBottom: 20 }}></View>
+              )}
+            </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </View>
     </>
@@ -410,8 +417,7 @@ export const DriverHomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   map: {
     width: "100%",
-    height: "100%",
-    zIndex: -1,
+    height: "60%",
   },
   noInternet: {
     fontSize: 20,
@@ -424,5 +430,11 @@ const styles = StyleSheet.create({
     top: 10,
     left: 10,
     zIndex: 10,
+  },
+  bsheet: {
+    width: "100%",
+    flexGrow: 1,
+    flex:1,
+    padding: 20,
   },
 });
