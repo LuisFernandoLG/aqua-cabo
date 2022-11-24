@@ -2,11 +2,9 @@ import { Icon, Text } from "@rneui/base";
 import { Button, ListItem } from "@rneui/themed";
 import { useContext, useEffect, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
-import firebase from "../../database/firebase.js";
 import { FlexContainer } from "../components/FlexContainer.jsx";
 import { api } from "../services/api.js";
 import { useAuth } from "../hooks/useAuth";
-import { formatTimestamp } from "../utils/formatTimestamp.js";
 import { useIsFocused } from "@react-navigation/native";
 import { netInfoContext } from "../contexts/NetInfoContext.js";
 

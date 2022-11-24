@@ -8,6 +8,7 @@ import { StatusBar } from "expo-status-bar";
 import * as Location from "expo-location";
 import { useEffect } from "react";
 import { NetInfoProvider } from "./src/contexts/NetInfoContext";
+import { FirebaseProvider } from "./src/contexts/FirebaseContex";
 let times = 0;
 
 export default function App() {
@@ -54,6 +55,7 @@ export default function App() {
   }, []);
 
   return (
+    <FirebaseProvider>
       <AuthProvider>
         <NetInfoProvider>
           <StatusBar />
@@ -62,6 +64,7 @@ export default function App() {
           </View>
         </NetInfoProvider>
       </AuthProvider>
+    </FirebaseProvider>
   );
 }
 

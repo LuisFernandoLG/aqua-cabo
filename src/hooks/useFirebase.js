@@ -1,11 +1,12 @@
-import { db } from "../../database/firebase2"
 import { off, onValue, ref } from "firebase/database"
-import { useState } from "react"
+import { useContext, useState } from "react"
+import { firebaseContext } from "../contexts/FirebaseContex"
 
 export const useFirebase = () => {
   const [listeners, setListeners] = useState([])
   const [allTrucks, setAllTrucks] = useState([])
   const [loading, setLoading] = useState(false)
+  const { db } = useContext(firebaseContext)
 
   const listenToTrucks = (callback) => {
     const truckLocationsRef = ref(db, "truckLocations");

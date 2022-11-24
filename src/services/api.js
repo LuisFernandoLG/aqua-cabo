@@ -1,5 +1,4 @@
 import { manhattanDistance } from "../helpers/manhattanDistance";
-import { db, auth } from "../../database/firebase2";
 import {
   set,
   ref,

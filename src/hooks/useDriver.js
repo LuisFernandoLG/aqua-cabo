@@ -1,11 +1,13 @@
 import { onValue, ref } from "firebase/database";
 import { useState } from "react";
-import { db } from "../../database/firebase2";
+import { firebaseContext } from "../contexts/FirebaseContex";
 
 export const useDriver = ()=>{
   const [listeners, setListeners] = useState([])
   
   const suscribeToWatchClientRequests = async ({ driverId }, cb) => {
+    const { db } = useContext(firebaseContext)
+
     const clientRequestsRef = ref(db, "clientRequests");
     const unsuscribe = onValue(clientRequestsRef, (snapshot) => {
       if (snapshot.exists()) {
