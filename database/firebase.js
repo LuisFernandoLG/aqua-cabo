@@ -26,7 +26,7 @@ const firebaseConfig = {
   storageBucket: STORAGE_BUCKET,
   messagingSenderId: MESSAGING_SENDER_ID,
   appId: APP_ID,
-  measurementId: MESSAGING_SENDER_ID,
+  measurementId: MEASUREMENT_ID,
 };
 
 firebase.initializeApp(firebaseConfig);

@@ -5,7 +5,6 @@ import {
   STORAGE_BUCKET,
   MESSAGING_SENDER_ID,
   APP_ID,
-  MEASUREMENT_ID,
 } from "@env";
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";

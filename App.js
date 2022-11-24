@@ -11,6 +11,7 @@ import { NetInfoProvider } from "./src/contexts/NetInfoContext";
 let times = 0;
 
 export default function App() {
+  
   const AsyncAlert = async () =>
     new Promise((resolve) => {
       Alert.alert(
