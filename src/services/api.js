@@ -1,3 +1,5 @@
+import { db, auth } from "../../database/firebase2";
+import { useContext } from "react";
 import { manhattanDistance } from "../helpers/manhattanDistance";
 import {
   set,
@@ -17,8 +19,11 @@ import {
 } from "firebase/auth";
 import { getRandomColor } from "../helpers/getRandomColor";
 
+
 export const api = () => {
   let listeners = [];
+  // const { db, auth } = useContext(firebaseContext)
+ 
   const sendDriverCoordsToDb = async ({ driverId, newCoords }) => {
     const truck = {
       driverId: driverId,
@@ -33,6 +38,14 @@ export const api = () => {
       console.log({ errorRR: error });
     }
   };
+
+  const updateTotalByRequestId = async ({clientId, total})=>{
+    try {
+      update(ref(db, "clientRequests/" + clientId), {total})
+    } catch (error) {
+      console.log({ errorRR: error });
+    }
+  }
 
   const sendLastTimestamp = async ({ driverId }) => {
     
@@ -247,7 +260,6 @@ export const api = () => {
     new Promise((resolve, reject) => {
       signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
-          // Signed in
           const user = userCredential.user;
           const path = `/users/${user.uid}`;
           get(ref(db, path))
@@ -260,11 +272,13 @@ export const api = () => {
               }
             })
             .catch((error) => {
+              console.log({holis:error})
               reject(error);
             });
         })
         .catch((error) => {
           // const errorCode = error.code;
+          console.log({holis:error})
           // const errorMessage = error.message;
           reject(error.message);
         });
@@ -389,7 +403,8 @@ export const api = () => {
     setOffline,
     suscribeToWaterLevel,
     changeStateOfWater,
-    getPriceLt
+    getPriceLt,
+    updateTotalByRequestId
   };
 };
 
@@ -423,10 +438,3 @@ const getCloserTruck = ({ trucks, clientCoords }) => {
     console.log(error.message);
   }
 };
-
-function login() {
-  // consulta a firebase
-  // toma 5s
-
-  return true;
-}

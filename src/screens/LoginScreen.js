@@ -18,13 +18,13 @@ import { useAuth } from "../hooks/useAuth";
 import { api } from "../services/api";
 
 export const LoginScreen = () => {
+  const navigation = useNavigation();
   const [email, setEmail] = useState("client@gmail.com");
   const [password, setPassword] = useState("12345678");
   const [isLoading, setIsLoading] = useState(null);
   const [errors, setErrors] = useState(null);
 
   const { isLogged, login: loginLocally, user } = useAuth();
-  const navigation = useNavigation();
   const { isConnected } = useContext(netInfoContext);
 
   useEffect(() => {

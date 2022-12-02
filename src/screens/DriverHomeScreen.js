@@ -22,6 +22,7 @@ import { WaterContainer } from "../components/WaterContainer";
 import { FloatContainer } from "../components/FloatContainer";
 import { useDriver } from "../hooks/useDriver";
 import { ScrollView } from "react-native-gesture-handler";
+import { useAutomaticWater } from "../hooks/useAutomaticWater";
 
 const initialRegion = {
   latitude: 22.945646,
@@ -48,6 +49,8 @@ const sectionList = {
   CHARGING: "CHARGING",
 };
 
+let initialTotalWater = 0;
+
 export const DriverHomeScreen = ({ navigation }) => {
   const [marker, setMarker] = useState(initialMarker);
   const { user, isLogged } = useAuth();
@@ -70,6 +73,29 @@ export const DriverHomeScreen = ({ navigation }) => {
 
   const { suscribeToWatchClientRequests, removeListeners } = useDriver();
   const panelRef = useRef(null);
+  const [manualLiter, setManualLiter] = useState(0);
+  const [isAutomaticWaterButtonPressed, setIsAutomaticWaterButtonPressed] =
+    useState(false);
+
+  const {
+    water,
+    openAutomaticWater,
+    waterConsuption,
+    turnOffWater,
+    turnOnWater,
+  } = useAutomaticWater();
+
+  const activateValve = () => {
+    turnOnWater();
+    setIsAutomaticWaterButtonPressed(true);
+    initialTotalWater = JSON.parse(JSON.stringify(water));
+  };
+
+  const deactivateValve = () => {
+    turnOffWater();
+    setWaterToFill(initialTotalWater - water);
+    console.log({x:initialTotalWater - water})
+  };
 
   useEffect(() => {
     if (isFocused) {
@@ -188,18 +214,12 @@ export const DriverHomeScreen = ({ navigation }) => {
   };
 
   const setAlreadyArrived = () => {
+    setIsAutomaticWaterButtonPressed(false)
+    setWaterToFill(0)
     const requestId = currentClientDestination.clientId;
     api().changeRequestStatus({ requestId, newStatus: "ARRIVED" }, (status) => {
       setCurrentClientDestination({ ...currentClientDestination, status });
     });
-  };
-
-  const turnOnWater = () => {
-    api().changeStateOfWater({ userId: user.id, value: true });
-  };
-
-  const turnOffWater = () => {
-    api().changeStateOfWater({ userId: user.id, value: false });
   };
 
   const setCharging = () => {
@@ -211,6 +231,8 @@ export const DriverHomeScreen = ({ navigation }) => {
       }
     );
   };
+
+  // a function that
 
   const setRequestFinish = async () => {
     const requestId = currentClientDestination.clientId;
@@ -226,10 +248,6 @@ export const DriverHomeScreen = ({ navigation }) => {
     setWaterToFilled(waterFilled + 1);
   };
 
-  useEffect(() => {
-    if (waterFilled >= waterToFill) {
-    }
-  }, [waterFilled]);
 
   useEffect(() => {
     if (isFocused && userLocation) {
@@ -240,10 +258,29 @@ export const DriverHomeScreen = ({ navigation }) => {
     }
   }, [isFocused]);
 
+  const getTotal = () => {
+    const priceByLiter = pendingRequest?.total / pendingRequest?.waterQuantity
+    const automaticTotalPayment = waterConsuption * priceByLiter
+    const noAutomicPayment = waterToFill * priceByLiter
+    const total = automaticTotalPayment + noAutomicPayment
+    const str = total.toString();
+    const rounded = str.substring(0, 6);
+
+    console.log({priceByLiter, waterToFill, automaticTotalPayment, noAutomicPayment, total, rounded})
+
+
+    api().updateTotalByRequestId({clientId: pendingRequest.clientId, total: rounded})
+    return rounded;
+  };
+
   return (
     <>
       <FloatContainer left={10} top={10} position="absolute">
-        <WaterContainer styles={styles.floatWaterBtn} />
+        <WaterContainer
+          waterLevel={water}
+          isConnected={hasInternet}
+          styles={styles.floatWaterBtn}
+        />
       </FloatContainer>
 
       <View>
@@ -357,12 +394,25 @@ export const DriverHomeScreen = ({ navigation }) => {
                       {currentClientDestination.status ===
                         sectionList.ARRIVED && (
                         <FlexContainer flex_ai_c>
-                          <Text h4>Llenar: {waterToFill} L</Text>
-                          <Text h5>Progreso: {waterFilled}L</Text>
+                          <Text h5>
+                            Llenar: {pendingRequest?.waterQuantity} L
+                          </Text>
                           <Button
-                            containerStyle={{ minWidth: "50%", marginTop: 20 }}
+                            containerStyle={{ minWidth: "50%", marginTop: 0 }}
+                            title={
+                              "Llenar automaticamente: " +
+                              pendingRequest?.waterQuantity +
+                              "L"
+                            }
+                            onPress={() =>
+                              openAutomaticWater(pendingRequest?.waterQuantity)
+                            }
+                            disabled={isAutomaticWaterButtonPressed}
+                          />
+                          <Button
+                            containerStyle={{ minWidth: "50%", marginTop: 10 }}
                             title={"Encender"}
-                            onPress={turnOnWater}
+                            onPress={activateValve}
                           />
                           <Button
                             containerStyle={{
@@ -370,7 +420,7 @@ export const DriverHomeScreen = ({ navigation }) => {
                               minWidth: "50%",
                             }}
                             title={"Apagar"}
-                            onPress={turnOffWater}
+                            onPress={deactivateValve}
                           />
                           <Button
                             containerStyle={{ minWidth: "50%" }}
@@ -384,7 +434,8 @@ export const DriverHomeScreen = ({ navigation }) => {
                         sectionList.CHARGING && (
                         <>
                           <Text style={{ textAlign: "center" }} h4>
-                            Cobrar ${pendingRequest?.total}
+                            Cobrar ${getTotal()}
+                            
                           </Text>
                           <Button title={"Hecho"} onPress={setRequestFinish} />
                         </>
@@ -434,7 +485,7 @@ const styles = StyleSheet.create({
   bsheet: {
     width: "100%",
     flexGrow: 1,
-    flex:1,
+    flex: 1,
     padding: 20,
   },
 });

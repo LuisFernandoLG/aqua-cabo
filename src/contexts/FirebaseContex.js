@@ -10,7 +10,6 @@ const FirebaseProvider = ({ children }) => {
     db, auth,
   }
 
-
   return <firebaseContext.Provider value={value}>{children}</firebaseContext.Provider>;
 };
 

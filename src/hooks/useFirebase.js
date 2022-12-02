@@ -3,10 +3,10 @@ import { useContext, useState } from "react"
 import { firebaseContext } from "../contexts/FirebaseContex"
 
 export const useFirebase = () => {
+  const { db } = useContext(firebaseContext)
   const [listeners, setListeners] = useState([])
   const [allTrucks, setAllTrucks] = useState([])
   const [loading, setLoading] = useState(false)
-  const { db } = useContext(firebaseContext)
 
   const listenToTrucks = (callback) => {
     const truckLocationsRef = ref(db, "truckLocations");

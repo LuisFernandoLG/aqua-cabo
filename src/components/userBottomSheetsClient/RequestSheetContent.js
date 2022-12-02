@@ -84,22 +84,22 @@ export const RequestSheetContent = ({
           <Button
             containerStyle={styles.btnWater}
             type="outline"
-            title={"1000L"}
-            onPress={() => handleDefaultLiters(1000)}
+            title={"1L"}
+            onPress={() => handleDefaultLiters(1)}
             loading={loading}
           />
           <Button
             containerStyle={styles.btnWater}
             type="outline"
-            title={"2000L"}
-            onPress={() => handleDefaultLiters(2000)}
+            title={"2L"}
+            onPress={() => handleDefaultLiters(2)}
             loading={loading}
           />
           <Button
             containerStyle={styles.btnWater}
             type="outline"
-            title={"3000L"}
-            onPress={() => handleDefaultLiters(3000)}
+            title={"3L"}
+            onPress={() => handleDefaultLiters(3)}
             loading={loading}
           />
         </FlexContainer>
@@ -107,15 +107,15 @@ export const RequestSheetContent = ({
           <Button
             containerStyle={styles.btnWater}
             type="outline"
-            title={"4000L"}
-            onPress={() => handleDefaultLiters(4000)}
+            title={"4L"}
+            onPress={() => handleDefaultLiters(4)}
             loading={loading}
           />
           <Button
             containerStyle={styles.btnWater}
             type="outline"
-            title={"5000L"}
-            onPress={() => handleDefaultLiters(5000)}
+            title={"5L"}
+            onPress={() => handleDefaultLiters(5)}
             loading={loading}
           />
         </FlexContainer>
