@@ -83,6 +83,7 @@ export const DriverHomeScreen = ({ navigation }) => {
     waterConsuption,
     turnOffWater,
     turnOnWater,
+    wasButtonPressed
   } = useAutomaticWater();
 
   const activateValve = () => {
@@ -407,7 +408,7 @@ export const DriverHomeScreen = ({ navigation }) => {
                             onPress={() =>
                               openAutomaticWater(pendingRequest?.waterQuantity)
                             }
-                            disabled={isAutomaticWaterButtonPressed}
+                            disabled={isAutomaticWaterButtonPressed || wasButtonPressed}
                           />
                           <Button
                             containerStyle={{ minWidth: "50%", marginTop: 10 }}

@@ -17,9 +17,11 @@ export const useAutomaticWater = () => {
   const [waterConsuption, setWaterConsuption] = useState(0);
   const { user } = useAuth();
   const {isConnected} = useContext(netInfoContext);
+  const {wasButtonPressed, setWasButtonPressed} = useState(false);
 
   const turnOnWater = () => {
     api().changeStateOfWater({ userId: user.id, value: waterValveStates.OPEN });
+    setWasButtonPressed(true);
   };
 
   const turnOffWater = () => {
@@ -66,7 +68,7 @@ export const useAutomaticWater = () => {
     openAutomaticWater,
     waterConsuption,
     turnOnWater,
-    turnOffWater
-
+    turnOffWater,
+    wasButtonPressed
   }
 }
