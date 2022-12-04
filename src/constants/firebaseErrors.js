@@ -231,7 +231,7 @@ export const firebaseErrors = {
   "auth/user-cancelled":
     "The user did not grant your application the permissions it requested.",
   "auth/user-not-found":
-    "There is no user record corresponding to this identifier. The user may have been deleted.",
+    "No existe algún usuario, con ese correo electrónico.",
   "auth/user-disabled":
     "The user account has been disabled by an administrator.",
   "auth/user-mismatch":

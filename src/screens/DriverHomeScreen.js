@@ -53,7 +53,7 @@ let initialTotalWater = 0;
 
 export const DriverHomeScreen = ({ navigation }) => {
   const [marker, setMarker] = useState(initialMarker);
-  const { user, isLogged } = useAuth();
+  const { user } = useAuth();
   const isFocused = useIsFocused();
   const [userLocation, setUserLocation] = useState(null);
   const [requestsByClients, setRequestsByClients] = useState([]);
@@ -83,19 +83,20 @@ export const DriverHomeScreen = ({ navigation }) => {
     waterConsuption,
     turnOffWater,
     turnOnWater,
-    wasButtonPressed
+    wasButtonPressed,
+    setWasButtonPressed
   } = useAutomaticWater();
 
   const activateValve = () => {
     turnOnWater();
     setIsAutomaticWaterButtonPressed(true);
-    initialTotalWater = JSON.parse(JSON.stringify(water));
+    
   };
 
+ 
   const deactivateValve = () => {
     turnOffWater();
     setWaterToFill(initialTotalWater - water);
-    console.log({x:initialTotalWater - water})
   };
 
   useEffect(() => {
@@ -215,8 +216,13 @@ export const DriverHomeScreen = ({ navigation }) => {
   };
 
   const setAlreadyArrived = () => {
+    //here is when the trucks comes to the client
+    initialTotalWater = JSON.parse(JSON.stringify(water));
     setIsAutomaticWaterButtonPressed(false)
     setWaterToFill(0)
+    setWasButtonPressed(false)
+
+
     const requestId = currentClientDestination.clientId;
     api().changeRequestStatus({ requestId, newStatus: "ARRIVED" }, (status) => {
       setCurrentClientDestination({ ...currentClientDestination, status });
@@ -245,11 +251,7 @@ export const DriverHomeScreen = ({ navigation }) => {
     await api().changeRequestStatus({ requestId, newStatus: "CANCELLED" });
   };
 
-  const fill = async () => {
-    setWaterToFilled(waterFilled + 1);
-  };
-
-
+  
   useEffect(() => {
     if (isFocused && userLocation) {
       animateToRegion(
@@ -261,13 +263,14 @@ export const DriverHomeScreen = ({ navigation }) => {
 
   const getTotal = () => {
     const priceByLiter = pendingRequest?.total / pendingRequest?.waterQuantity
-    const automaticTotalPayment = waterConsuption * priceByLiter
-    const noAutomicPayment = waterToFill * priceByLiter
-    const total = automaticTotalPayment + noAutomicPayment
+    const kmCost = currentClientDestination?.kmCost || 0;
+    const total = (priceByLiter * (initialTotalWater - water)) + kmCost
+    
+    console.log({total, priceByLiter, initialTotalWater, water, kmCost})
     const str = total.toString();
     const rounded = str.substring(0, 6);
 
-    console.log({priceByLiter, waterToFill, automaticTotalPayment, noAutomicPayment, total, rounded})
+    // $3.57MX per km
 
 
     api().updateTotalByRequestId({clientId: pendingRequest.clientId, total: rounded})

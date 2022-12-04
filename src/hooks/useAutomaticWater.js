@@ -1,3 +1,4 @@
+import { useIsFocused } from "@react-navigation/native";
 import { useContext, useEffect, useState } from "react";
 import { netInfoContext } from "../contexts/NetInfoContext";
 import { api } from "../services/api";
@@ -17,9 +18,9 @@ export const useAutomaticWater = () => {
   const [waterConsuption, setWaterConsuption] = useState(0);
   const { user } = useAuth();
   const {isConnected} = useContext(netInfoContext);
-  const {wasButtonPressed, setWasButtonPressed} = useState(false);
+  const [wasButtonPressed, setWasButtonPressed] = useState(false);
 
-  const turnOnWater = () => {
+   const turnOnWater = () => {
     api().changeStateOfWater({ userId: user.id, value: waterValveStates.OPEN });
     setWasButtonPressed(true);
   };
@@ -69,6 +70,7 @@ export const useAutomaticWater = () => {
     waterConsuption,
     turnOnWater,
     turnOffWater,
-    wasButtonPressed
+    wasButtonPressed,
+    setWasButtonPressed
   }
 }

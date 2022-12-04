@@ -41,6 +41,7 @@ export const OrdersScreen = () => {
               Fecha: {item.date}
             </Text>
             <Text>Cantidad: {item.waterQuantity}</Text>
+            <Text>Total: {item.total}</Text>
           </ListItem.Content>
         )}
       />

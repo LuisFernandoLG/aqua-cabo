@@ -1,5 +1,5 @@
 import { db, auth } from "../../database/firebase2";
-import { useContext } from "react";
+import { sendPasswordResetEmail } from "firebase/auth";
 import { manhattanDistance } from "../helpers/manhattanDistance";
 import {
   set,
@@ -307,6 +307,18 @@ export const api = () => {
         });
     });
 
+  const updateUserData = ({userId, user})=>{
+    return new Promise((resolve, reject) => {
+      update(ref(db, "users/" + userId), user)
+        .then((_) => {
+          resolve(user);
+        })
+        .catch((error) => {
+          reject(error);
+        });
+    })
+  }
+
   const registerDriver = ({ email, password, userForm }) =>
     new Promise((resolve, reject) => {
       createUserWithEmailAndPassword(auth, email, password)
@@ -382,6 +394,18 @@ export const api = () => {
       }
     });}
 
+  const resetPassword = ({ email }) =>
+    new Promise((resolve, reject) => {
+      sendPasswordResetEmail(auth, email)
+        .then(() => {
+          resolve(true);
+        })
+        .catch((error) => {
+          reject(error.code);
+        });
+    });
+
+
   return {
     sendDriverCoordsToDb,
     registerClient,
@@ -404,7 +428,9 @@ export const api = () => {
     suscribeToWaterLevel,
     changeStateOfWater,
     getPriceLt,
-    updateTotalByRequestId
+    updateTotalByRequestId,
+    updateUserData,
+    resetPassword
   };
 };
 

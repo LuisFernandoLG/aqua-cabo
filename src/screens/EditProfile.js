@@ -1,43 +1,47 @@
-import { useNavigation } from "@react-navigation/native";
-import { Button } from "@rneui/base";
-import { Image, Input, Text } from "@rneui/themed";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
+import { Icon } from "@rneui/base";
+import { Button, Input, Text } from "@rneui/themed";
+import { useEffect } from "react";
+import { useContext } from "react";
 import { useState } from "react";
-import { KeyboardAvoidingView, StyleSheet, View } from "react-native";
+import { ScrollView } from "react-native";
+import { KeyboardAvoidingView } from "react-native";
+import { Dimensions } from "react-native";
+import { StyleSheet } from "react-native";
 import { FlexContainer } from "../components/FlexContainer";
 import { firebaseErrors } from "../constants/firebaseErrors";
-import { api } from "../services/api";
-import { useAuth } from "../hooks/useAuth";
-import { Dimensions } from "react-native";
-import { ScrollView } from "react-native";
-import { useContext } from "react";
-import { netInfoContext } from "../contexts/NetInfoContext";
 import { emailRegex, nameRegex, phoneRegex } from "../constants/regexs";
+import { netInfoContext } from "../contexts/NetInfoContext";
+import { useAuth } from "../hooks/useAuth";
+import { api } from "../services/api";
 
-const initialForm = {
-  name: "Víctor",
-  email: "vic@gmail.com",
-  phone: "6242420721",
-  password: "1234567890",
-  repassword: "1234567890",
+const initialUser = {
+  name: "",
+  email: "",
+  phone: "",
 };
 
-export const SignUpScreen = () => {
-  const [form, setForm] = useState(initialForm);
+export const EditProfile = () => {
+  const { user } = useAuth();
+  const [form, setForm] = useState(initialUser);
   const [formErrors, setFormErrors] = useState(null);
   const [firebaseError, setFirebaseError] = useState(null);
   const [loading, setLoading] = useState(false);
   const { isConnected } = useContext(netInfoContext);
 
   const navigation = useNavigation();
-  const { login: loginLocally } = useAuth();
-
-  const goToLoginScreen = () => {
-    navigation.navigate("login");
-  };
+  const { updateUserData } = useAuth();
+  const isFocused = useIsFocused();
 
   const hanldeChange = (name, value) => {
     setForm({ ...form, [name]: value });
   };
+
+  useEffect(() => {
+    if (isFocused) {
+      setForm(user);
+    }
+  }, [isFocused]);
 
   const handleSubmit = () => {
     let errors = {};
@@ -46,39 +50,27 @@ export const SignUpScreen = () => {
     if (!emailRegex.test(form.email))
       errors = { ...errors, email: "Coreo no válido" };
     if (!phoneRegex.test(form.phone))
-      errors = { ...errors, phone: "Teléfono no válido" };
-    if (!(form.password.length > 7))
-      errors = {
-        ...errors,
-        password: "La contraseña debe ser mayor a 8 caracteres",
-      };
-    if (form.password !== form.repassword)
-      errors = { ...errors, repassword: "Las contraseñas deben coincidir" };
+      errors = { ...errors, phone: "El teléfono debe contener 10 dígitos" };
 
     if (Object.values(errors).length === 0) {
       setFormErrors(null);
       setFirebaseError(null);
       setLoading(true);
+      
       api()
-        .registerClient({
-          email: form.email,
-          password: form.password,
-          userForm: form,
+      .updateUserData({ userId: user.id, user: form })
+      .then((res) => {
+        alert("Datos actualizados correctamente");
+        updateUserData(form)
         })
-        .then((item) => {
-          loginLocally({ user: item });
-        })
-        .catch((e) => {
-          console.log({ e });
-          if (!isConnected) setFirebaseError("No hay conexión a internet");
-        else setFirebaseError(firebaseErrors[e.errorCode]);
+        .catch((err) => {
+          console.log(err);
         })
         .finally(() => {
           setLoading(false);
         });
     } else setFormErrors(errors);
   };
-
   return (
     <ScrollView>
       <KeyboardAvoidingView
@@ -86,15 +78,11 @@ export const SignUpScreen = () => {
         style={styles.container}
       >
         <FlexContainer flex_ai_c mVertical={100} mHorizontal={40}>
-          <Button title="Atrás" type="clear" onPress={goToLoginScreen} />
-          <Text style={{ marginVertical: 20 }} h4>
-            Registro de cliente
-          </Text>
           <Input
             placeholder="Nombre"
             style={styles.input}
             onChangeText={(value) => hanldeChange("name", value)}
-            value={form.name}
+            value={form?.name}
             errorStyle={{ color: "red" }}
             errorMessage={formErrors?.name}
             label={
@@ -106,14 +94,15 @@ export const SignUpScreen = () => {
           <Input
             keyboardType="email-address"
             placeholder="Correo"
-            value={form.email}
-            style={styles.input}
+            value={form?.email}
+            disabled={true}
+            style={{ ...styles.input, borderWidth: 0 }}
             onChangeText={(value) => hanldeChange("email", value)}
             errorStyle={{ color: "red" }}
             errorMessage={formErrors?.email}
             label={
-              <Text style={styles.label}>
-                {form.email !== "" ? "Correo" : ""}
+              <Text style={{ ...styles.label, color: "gray" }}>
+                {form?.email !== "" ? "Correo" : ""}
               </Text>
             }
           />
@@ -121,7 +110,7 @@ export const SignUpScreen = () => {
             style={styles.input}
             keyboardType="phone-pad"
             placeholder="Teléfono"
-            value={form.phone}
+            value={(form?.phone).toString()}
             onChangeText={(value) => hanldeChange("phone", value)}
             errorStyle={{ color: "red" }}
             errorMessage={formErrors?.phone}
@@ -132,39 +121,24 @@ export const SignUpScreen = () => {
             }
           />
 
-          <Input
-            style={styles.input}
-            // secureTextEntry={true}
-            placeholder="Contraseña"
-            value={form.password}
-            onChangeText={(value) => hanldeChange("password", value)}
-            errorMessage={formErrors?.password}
-            label={
-              <Text style={styles.label}>
-                {form.password !== "" ? "Contraseña" : ""}
-              </Text>
-            }
-          />
-
-          <Input
-            style={styles.input}
-            // secureTextEntry={true}
-            value={form.repassword}
-            placeholder="Confirmar contraseña"
-            onChangeText={(value) => hanldeChange("repassword", value)}
-            errorMessage={formErrors?.repassword}
-            label={
-              <Text style={styles.label}>
-                {form.repassword !== "" ? "Confirmar contraseña" : ""}
-              </Text>
-            }
-          />
           <Text style={styles.firebaseErrorr}>{firebaseError}</Text>
-          <Button
-            title="Registrarse"
-            onPress={handleSubmit}
-            loading={loading}
-          />
+
+          { !isConnected ? (
+            <>
+              <Button>
+                <Icon name="wifi-off" />
+                <Text style={styles.noInternet}>
+                  No hay conexión a internet
+                </Text>
+              </Button>
+            </>
+          ) : (
+            <Button
+              title="Actualizar"
+              onPress={handleSubmit}
+              loading={loading}
+            />
+          )}
         </FlexContainer>
       </KeyboardAvoidingView>
     </ScrollView>
@@ -208,5 +182,9 @@ const styles = StyleSheet.create({
   },
   middleBtn: {
     marginVertical: 10,
+  },
+  noInternet: {
+    fontSize: 20,
+    textAlign: "center",
   },
 });

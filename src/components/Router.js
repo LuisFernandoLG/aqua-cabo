@@ -12,6 +12,8 @@ import { CustomDrawerContent } from "./CustomDrawer";
 import { DefaultTheme } from "@react-navigation/native";
 import { HomeScreen } from "../screens/HomeScreen";
 import { SignUpDriverScreen } from "../screens/SignUpDriverScreen";
+import { EditProfile } from "../screens/EditProfile";
+import { ResetPasswordScreen } from "../screens/ResetPasswordScreen";
 
 export const Router = () => {
   const Drawer = createDrawerNavigator();
@@ -36,27 +38,24 @@ export const Router = () => {
         backBehavior="history"
       >
         <Drawer.Group>
-     
-            <Drawer.Screen
-              name="Home"
-              options={{
-                title: "AquaCabo",
-                drawerItemStyle: { display: isDriver ? "none" : "flex" },
-              }}
-              component={HomeScreen}
-              />
+          <Drawer.Screen
+            name="Home"
+            options={{
+              title: "AquaCabo",
+              drawerItemStyle: { display: isDriver ? "none" : "flex" },
+            }}
+            component={HomeScreen}
+          />
 
-              
-           
-            <Drawer.Screen
-              name="DriverHome"
-              options={{
-                title: "Conductor",
-                drawerItemStyle: { display: isDriver ? "flex" : "none" },
-              }}
-              component={DriverHomeScreen}
-            />
-        
+          <Drawer.Screen
+            name="DriverHome"
+            options={{
+              title: "Conductor",
+              drawerItemStyle: { display: isDriver ? "flex" : "none" },
+            }}
+            component={DriverHomeScreen}
+          />
+
           <Drawer.Screen
             name="DriverLogin"
             options={{
@@ -90,6 +89,31 @@ export const Router = () => {
             options={{ title: "Perfil" }}
             component={ProfileScreen}
           />
+
+          <Drawer.Screen
+            name="EditProfile"
+            options={{
+              title: "Editar Perfil",
+              drawerItemStyle: { display: "none" },
+              
+            }}
+            component={EditProfile}
+          />
+
+          
+          <Drawer.Screen
+            name="ResetPassword"
+            options={{
+              title: "Restablecer contraseña",
+              drawerItemStyle: { display: "none" },
+              headerShown: false,
+              swipeEdgeWidth: 0,
+            }}
+            component={ResetPasswordScreen}
+          />
+
+
+
           <Drawer.Screen
             name="About"
             options={{ title: "Acerca de" }}

@@ -35,11 +35,20 @@ const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateUserData = async (data) => {
+    try {
+      setUser({...user,  ...data});
+    } catch (error) {
+      console.log("error al guardar en local storage");
+    }
+  };
+
   const value = {
     isLogged,
     user,
     setLogin,
     setLogout,
+    updateUserData
   };
 
   return <authContext.Provider value={value}>{children}</authContext.Provider>;

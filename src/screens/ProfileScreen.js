@@ -1,10 +1,20 @@
+import { useNavigation } from "@react-navigation/native";
 import { Divider, Text } from "@rneui/base";
+import { Button, Icon } from "@rneui/themed";
 import { View } from "react-native";
 import { FlexContainer } from "../components/FlexContainer";
 import { useAuth } from "../hooks/useAuth";
 
 export const ProfileScreen = () => {
   const { user } = useAuth();
+  const navigation = useNavigation()
+
+  const goToEditProfiel = () => {
+    navigation.navigate('EditProfile')
+  }
+
+  console.log({user})
+
 
   return (
     <View>
@@ -24,6 +34,12 @@ export const ProfileScreen = () => {
           <Text>{user?.phone}</Text>
         </FlexContainer>
       </FlexContainer>
+        <FlexContainer flex_ai_c mVertical={30}>
+        <Button onPress={goToEditProfiel}>
+          <Icon name="edit"  color={"#fff"}  />
+        </Button>
+        </FlexContainer>
+
     </View>
   );
 };

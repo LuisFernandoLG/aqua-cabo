@@ -60,6 +60,12 @@ export const LoginScreen = () => {
       });
   };
 
+  const goToResetPasswordScreen = () => {
+    navigation.navigate("ResetPassword");
+  };
+  
+
+
   return (
     <ScrollView>
       <KeyboardAvoidingView
@@ -95,6 +101,9 @@ export const LoginScreen = () => {
             />
             <FlexContainer >
               <Text style={styles.errorMsg}>{errors || ""}</Text>
+            </FlexContainer>
+            <FlexContainer >
+              <Text style={{marginBottom:10, color:"blue"}} onPress={goToResetPasswordScreen}>{"Recuperar contraseña"}</Text>
             </FlexContainer>
 
             <FlexContainer flex_jc_c>

@@ -58,6 +58,10 @@ export const DriverLoginScreen = () => {
     navigation.navigate("login");
   };
 
+  const goToResetPasswordScreen = () => {
+    navigation.navigate("ResetPassword");
+  };
+
   return (
     <ScrollView>
       <KeyboardAvoidingView
@@ -69,7 +73,7 @@ export const DriverLoginScreen = () => {
             <View style={styles.logoContainer}>
               <Image
                 style={styles.logo}
-                source={require("../../assets/logo.png")}
+                source={require("../../assets/driverIcon.png")}
               />
             </View>
             <FlexContainer mVertical={20} flex_jc_c flex_ai_c>
@@ -96,6 +100,11 @@ export const DriverLoginScreen = () => {
             <FlexContainer>
               <Text style={styles.errorMsg}>{errors || ""}</Text>
             </FlexContainer>
+
+            <FlexContainer >
+              <Text style={{marginBottom:10, color:"blue"}} onPress={goToResetPasswordScreen}>{"Recuperar contraseña"}</Text>
+            </FlexContainer>
+
 
             <FlexContainer flex_jc_c>
               <Button
