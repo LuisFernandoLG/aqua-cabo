@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { FlexContainer } from "../components/FlexContainer";
 import { WaterContainer } from "../components/WaterContainer";
+import { firebaseErrors } from "../constants/firebaseErrors";
 import { netInfoContext } from "../contexts/NetInfoContext";
 import { useAuth } from "../hooks/useAuth";
 import { api } from "../services/api";
@@ -48,12 +49,17 @@ export const LoginScreen = () => {
     api()
       .login({ email, password })
       .then((authUser) => {
-        loginLocally({ user: authUser });
+        if(authUser.type === "DRIVER"){
+          setErrors("Lo sentimos, tu cuenta no pertenece a la de un cliente.")
+        }
+        else{
+          loginLocally({ user: authUser });
+        }
       })
       .catch((e) => {
-        console.log({ e });
+        const errorsMsg = firebaseErrors[e] || "Correo o contraseña incorrectos"
         if (!isConnected) setErrors("No hay conexión a internet");
-        else setErrors("Correo o contraseña incorrectos");
+        else setErrors(errorsMsg);
       })
       .finally(() => {
         setIsLoading(false);
@@ -161,6 +167,7 @@ const styles = StyleSheet.create({
   errorMsg: {
     color: "red",
     marginBottom:10,
+    textAlign: "center",
 
   },
   middleBtn: {

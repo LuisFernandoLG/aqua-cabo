@@ -1,4 +1,5 @@
 export const firebaseErrors = {
+  "admin":"Lo sentimos, tu cuenta pertenece a un administrador",
   "auth/wrong-password":
     "The password is invalid or the user does not have a password.",
   "auth/claims-too-large":

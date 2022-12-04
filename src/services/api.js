@@ -266,20 +266,22 @@ export const api = () => {
             .then((snapshot) => {
               if (snapshot.exists()) {
                 const authUser = snapshot.val();
-                resolve(authUser);
+                if(authUser.type !== "ADMIN"){
+                  resolve(authUser);
+                }else{
+                  reject("admin");
+                }
               } else {
                 reject("No data available");
               }
             })
             .catch((error) => {
               console.log({holis:error})
-              reject(error);
+              reject(error.message);
             });
         })
         .catch((error) => {
-          // const errorCode = error.code;
           console.log({holis:error})
-          // const errorMessage = error.message;
           reject(error.message);
         });
     });

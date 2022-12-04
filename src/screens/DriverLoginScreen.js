@@ -16,6 +16,7 @@ import { ScrollView } from "react-native";
 import { Dimensions } from "react-native";
 import { useContext } from "react";
 import { netInfoContext } from "../contexts/NetInfoContext";
+import { firebaseErrors } from "../constants/firebaseErrors";
 
 export const DriverLoginScreen = () => {
   const [email, setEmail] = useState("vic@gmail.com");
@@ -40,12 +41,17 @@ export const DriverLoginScreen = () => {
     api()
       .login({ email, password })
       .then((authUser) => {
-        console.log({ authUser });
-        loginLocally({ user: authUser });
+        if(authUser?.type === "CLIENT") {
+        setErrors("Lo sentimos, tu cuenta no es de conductor");
+        }
+        else{
+          loginLocally({ user: authUser });
+        }
       })
-      .catch(() => {
+      .catch((e) => {
+        const errorsMsg = firebaseErrors[e] || "Correo o contraseña incorrectos"
         if (!isConnected) setErrors("No hay conexión a internet");
-        else setErrors("Correo o contraseña incorrectos");
+        else setErrors(errorsMsg);
       })
       .finally(() => {
         setIsLoading(false);
@@ -153,6 +159,7 @@ const styles = StyleSheet.create({
   },
   errorMsg: {
     color: "red",
+    textAlign: "center",
   },
   input: {
     backgroundColor: "#fff",
